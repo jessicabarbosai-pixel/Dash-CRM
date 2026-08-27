@@ -19,6 +19,21 @@
         th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background: #f1f5f9; font-weight: 600; color: #334155; }
         tr:hover { background: #f8fafc; }
+        
+        /* Estilos do Funil */
+        .funnel-step {
+            transition: width 0.8s ease-in-out;
+            margin: 0 auto;
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            min-width: 15%; /* Para o texto não sumir */
+        }
     </style>
 </head>
 <body>
@@ -37,7 +52,7 @@
         </div>
 
         <div id="mainDashboard" class="hidden">
-            <!-- Filtros -->
+            <!-- Filtros Principais -->
             <div class="card grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Locadora</label>
@@ -86,10 +101,21 @@
                 </div>
             </div>
 
-            <!-- NOVO: Funil de Conversão -->
-            <div class="card mb-6">
-                <h3 class="font-bold mb-4">🔽 Funil de Conversão (Request > Arrive > Show > Click) por Locadora</h3>
-                <div class="chart-container"><canvas id="funnelChart"></canvas></div>
+            <!-- NOVO: Funil de Conversão Real com Seletor Isolado -->
+            <div class="card mb-6 bg-gray-50">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <h3 class="font-bold text-xl text-gray-800">🔽 Funil de Conversão</h3>
+                    <div class="w-full md:w-64 mt-2 md:mt-0">
+                        <select id="funnelLocadoraSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800">
+                            <option value="">Todas as Locadoras</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- O Funil será desenhado aqui dentro -->
+                <div id="funnelContainer" class="flex flex-col space-y-2 w-full max-w-4xl mx-auto min-h-[220px] justify-center">
+                    <!-- Barras injetadas via JS -->
+                </div>
             </div>
 
             <!-- Gráficos 1 e 2 -->
