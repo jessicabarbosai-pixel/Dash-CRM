@@ -30,7 +30,8 @@ function initAuth() {
 
     // Filtros Exclusivos dos Painéis
     document.getElementById('funnelLocadoraSelect').addEventListener('change', renderFunnel);
-    document.getElementById('timeVolLocadoraSelect').addEventListener('change', renderTimeVolumeChart);
+    // Agora ouve a mudança de Mês do gráfico de semanas
+    document.getElementById('timeVolMesSelect').addEventListener('change', renderTimeVolumeChart);
 }
 
 // 2. Buscar Dados
@@ -143,10 +144,11 @@ function populateFilters() {
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
-    // O Dropdown do Funil recebe as mesmas opções
+    // O Dropdown do Funil
     document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
-    // O Dropdown de Tempo (Semanas) recebe as mesmas opções
-    document.getElementById('timeVolLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    // O Dropdown de Tempo (Semanas) agora usa os meses
+    document.getElementById('timeVolMesSelect').innerHTML = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
     document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('filterOwnership').innerHTML = '<option value="">Todos</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
@@ -174,7 +176,7 @@ function applyFilters() {
     renderCharts();
     renderTables();
     renderFunnel(); 
-    renderTimeVolumeChart(); // Chama o gráfico de semanas
+    renderTimeVolumeChart(); 
 }
 
 // 6. Atualizar Scorecards
@@ -200,7 +202,7 @@ function updateKPIs() {
     if (elBases) elBases.innerText = basesUnicas.size;
 }
 
-// NOVO: Renderizar Funil Visual (com Vírgula nas porcentagens)
+// NOVO: Renderizar Funil Visual
 function renderFunnel() {
     const funnelLoc = document.getElementById('funnelLocadoraSelect').value;
     const funnelContainer = document.getElementById('funnelContainer');
@@ -217,7 +219,6 @@ function renderFunnel() {
         clk += d.click;
     });
 
-    // Formata o número com 1 casa decimal e troca o ponto pela vírgula Brasileira
     const formatPct = (val) => val.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 1});
 
     const arrPct = req > 0 ? formatPct((arr / req) * 100) : 0;
@@ -249,17 +250,19 @@ function renderFunnel() {
     `;
 }
 
-// NOVO: Renderizar Gráfico de Requests por Semana com Filtro Isolado
+// NOVO: Gráfico de Semanas focado apenas no Mês escolhido
 function renderTimeVolumeChart() {
-    const weekLabels = [...new Set(filteredData.map(d => d.semana))];
-    const loc = document.getElementById('timeVolLocadoraSelect').value;
+    const mes = document.getElementById('timeVolMesSelect').value;
     
+    // Isola as semanas com base no mês selecionado
     let dataToUse = filteredData;
-    if (loc) {
-        dataToUse = filteredData.filter(d => d.projeto === loc);
+    if (mes) {
+        dataToUse = filteredData.filter(d => d.mes === mes);
     }
     
-    // Agora pega apenas REQUESTS
+    // Extrai apenas as semanas presentes naquele mês específico
+    const weekLabels = [...new Set(dataToUse.map(d => d.semana))];
+    
     const reqTempo = weekLabels.map(wk => dataToUse.filter(d => d.semana === wk).reduce((sum, d) => sum + d.request, 0));
 
     const elTimeVol = document.getElementById('timeVolumeChart');
