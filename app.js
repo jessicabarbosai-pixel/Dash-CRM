@@ -65,7 +65,7 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim(); // NOVO: Puxa CRM, Fura Fila...
+        let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim(); // CRM, Fura Fila...
         let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase(); 
         let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase();
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
@@ -91,10 +91,12 @@ function processData(rows) {
             }
         }
 
-        // Tratamento String
+        // Ownership, Loyalty e WAVES com Tratamento de String (Lotes -> Lote)
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
         descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
-        if (descBase) descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
+        if (descBase) {
+            descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
+        }
 
         const ownerCol = (row[CONFIG.COLUMNS.OWNERSHIP] || '').trim();
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
@@ -122,7 +124,7 @@ function processData(rows) {
         else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
 
         processed.push({
-            saida: saida || 'Sem Definição', // Salva o nome da saída
+            saida: saida || 'Sem Definição', 
             projeto, canal, dataInt: rawDate.getTime(), semana: weekLabel, mes: monthLabel,
             baseCrua: descBase || 'Base Genérica',
             ownership, wave, loyalty, isCaixa,
@@ -147,9 +149,8 @@ function populateFilters() {
     const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
     const meses = [...new Set(rawData.map(d => d.mes))];
 
-    // Preenche o novo Dropdown de Saída
-    document.getElementById('filterSaida').innerHTML = '<option value="">Todos</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
-
+    document.getElementById('filterSaida').innerHTML = '<option value="">Todas</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
+    
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
