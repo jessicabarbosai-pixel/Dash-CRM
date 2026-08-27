@@ -1,24 +1,112 @@
-<!-- Filtros -->
-<div class="filters-section">
-    <select id="projetoFilter"><option>Todas Locadoras</option></select>
-    <select id="canalFilter"><option>Todos Canais</option></select>
-    <select id="ownershipFilter"><option>Todos (Próprio/Alugado)</option></select>
-</div>
-
-<!-- Scorecards -->
-<div class="scorecards-container">
-    <div class="scorecard">
-        <div class="scorecard-label">Volume Total (Requests)</div>
-        <div class="scorecard-value" id="totalRequests">-</div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Dashboard - Fura Fila</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .header { background: linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%); color: white; padding: 2rem; text-align: center; }
+        .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .scorecard-value { font-size: 2rem; font-weight: bold; color: #2d3748; margin-top: 0.5rem; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        select { border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem; width: 100%; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f7fafc; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="text-3xl font-bold">📊 CRM Dashboard - Performance</h1>
+        <p class="mt-2 opacity-90">Análise de Base, Canais e Locadoras</p>
     </div>
-    <!-- Outros Scorecards: CR, Volume por Canal... -->
-</div>
 
-<!-- Tabela de Ranking de Bases (O conjunto inteiro que você pediu) -->
-<h2 class="section-title">Ranking de Bases Abordadas</h2>
-<table>
-    <thead>
-        <tr><th>Descrição da Base</th><th>Requests (Volume)</th><th>Ownership Type</th></tr>
-    </thead>
-    <tbody id="rankingTableBody"></tbody>
-</table>
+    <div class="container mx-auto p-4 md:p-6">
+        <!-- Autenticação -->
+        <div id="authSection" class="card text-center max-w-md mx-auto my-8">
+            <h2 class="text-xl font-bold mb-4">Acesso aos Dados</h2>
+            <button id="authBtn" class="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 transition">
+                <i class="fab fa-google mr-2"></i> Conectar Planilha
+            </button>
+        </div>
+
+        <div id="mainDashboard" class="hidden">
+            <!-- Filtros -->
+            <div class="card grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-bold mb-2">🏢 Locadora (Projeto)</label>
+                    <select id="filterProjeto"><option value="">Todas</option></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">📱 Canal</label>
+                    <select id="filterCanal"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">🚗 Ownership (Propriedade)</label>
+                    <select id="filterOwnership">
+                        <option value="">Todos</option>
+                        <option value="Alugado/Terceiro">Alugado/Terceiro</option>
+                        <option value="Próprio">Próprio</option>
+                        <option value="Outros">Outros/Misto</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="refreshBtn" class="bg-gray-800 text-white w-full py-2 rounded hover:bg-gray-700">Atualizar Dados</button>
+                </div>
+            </div>
+
+            <!-- Scorecards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="card border-l-4 border-blue-500">
+                    <div class="text-gray-500 text-sm font-bold uppercase">Volume Total (Requests)</div>
+                    <div id="kpiRequests" class="scorecard-value">0</div>
+                </div>
+                <div class="card border-l-4 border-green-500">
+                    <div class="text-gray-500 text-sm font-bold uppercase">Média CTR Geral</div>
+                    <div id="kpiCTR" class="scorecard-value">0%</div>
+                </div>
+                <div class="card border-l-4 border-purple-500">
+                    <div class="text-gray-500 text-sm font-bold uppercase">Base Mais Abordada</div>
+                    <div id="kpiTopBase" class="scorecard-value text-xl break-words mt-2">-</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="card">
+                    <h3 class="font-bold mb-4">📈 Tendência de Requests por Semana</h3>
+                    <div class="chart-container"><canvas id="trendChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3 class="font-bold mb-4">🏢 Volume por Locadora e Canal</h3>
+                    <div class="chart-container"><canvas id="locadoraChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Tabela Ranking de Bases -->
+            <div class="card overflow-x-auto">
+                <h3 class="font-bold mb-4">🏆 Ranking de Bases Abordadas (Detalhado)</h3>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>Descrição da Base</th>
+                            <th>Ownership Extraído</th>
+                            <th>Volume (Requests)</th>
+                            <th>Taxa CTR Média</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankingTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
