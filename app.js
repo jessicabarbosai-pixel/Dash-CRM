@@ -28,8 +28,9 @@ function initAuth() {
         document.getElementById(id).addEventListener('change', applyFilters);
     });
 
-    // Filtro Exclusivo do Funil
+    // Filtros Exclusivos dos Painéis
     document.getElementById('funnelLocadoraSelect').addEventListener('change', renderFunnel);
+    document.getElementById('timeVolLocadoraSelect').addEventListener('change', renderTimeVolumeChart);
 }
 
 // 2. Buscar Dados
@@ -45,7 +46,7 @@ async function fetchData() {
     }
 }
 
-// FORMATO INGLÊS: Remove vírgulas, transforma em Float.
+// FORMATO INGLÊS
 const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
@@ -142,7 +143,10 @@ function populateFilters() {
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
+    // O Dropdown do Funil recebe as mesmas opções
     document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    // O Dropdown de Tempo (Semanas) recebe as mesmas opções
+    document.getElementById('timeVolLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('filterOwnership').innerHTML = '<option value="">Todos</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
@@ -169,7 +173,8 @@ function applyFilters() {
     updateKPIs();
     renderCharts();
     renderTables();
-    renderFunnel(); // Atualiza o Funil com os dados filtrados globalmente
+    renderFunnel(); 
+    renderTimeVolumeChart(); // Chama o gráfico de semanas
 }
 
 // 6. Atualizar Scorecards
@@ -195,18 +200,14 @@ function updateKPIs() {
     if (elBases) elBases.innerText = basesUnicas.size;
 }
 
-// NOVO: Renderizar Funil Visual CSS (Imitando a Imagem)
+// NOVO: Renderizar Funil Visual (com Vírgula nas porcentagens)
 function renderFunnel() {
     const funnelLoc = document.getElementById('funnelLocadoraSelect').value;
     const funnelContainer = document.getElementById('funnelContainer');
-    
     if (!funnelContainer) return;
 
-    // Isola a Locadora selecionada sem perder os filtros de Mês/Canal globais
     let dataForFunnel = filteredData;
-    if (funnelLoc) {
-        dataForFunnel = filteredData.filter(d => d.projeto === funnelLoc);
-    }
+    if (funnelLoc) dataForFunnel = filteredData.filter(d => d.projeto === funnelLoc);
 
     let req = 0, arr = 0, shw = 0, clk = 0;
     dataForFunnel.forEach(d => {
@@ -216,50 +217,65 @@ function renderFunnel() {
         clk += d.click;
     });
 
-    // Cálculos respeitando o formato da Imagem de referência (Base 100%)
-    const arrPct = req > 0 ? ((arr / req) * 100).toFixed(1) : 0;
-    const shwPct = req > 0 ? ((shw / req) * 100).toFixed(1) : 0;
-    // O CTR costuma ser Click/Show, mas para manter o funil visual usamos
-    const ctrPct = shw > 0 ? ((clk / shw) * 100).toFixed(1) : 0;
+    // Formata o número com 1 casa decimal e troca o ponto pela vírgula Brasileira
+    const formatPct = (val) => val.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 1});
+
+    const arrPct = req > 0 ? formatPct((arr / req) * 100) : 0;
+    const shwPct = req > 0 ? formatPct((shw / req) * 100) : 0;
+    const ctrPct = shw > 0 ? formatPct((clk / shw) * 100) : 0;
 
     funnelContainer.innerHTML = `
         <div class="funnel-wrapper">
-            <!-- 1. Base (Laranja Escuro) -->
             <div class="funnel-row layer-1">
                 <div class="funnel-top"></div>
-                <div class="funnel-body">
-                    <span class="funnel-text">Base: ${req.toLocaleString('en-US')}</span>
-                </div>
+                <div class="funnel-body"><span class="funnel-text">Base: ${req.toLocaleString('en-US')}</span></div>
             </div>
             
-            <!-- 2. Arrive (Laranja Claro) -->
             <div class="funnel-row layer-2">
                 <div class="funnel-top"></div>
-                <div class="funnel-body">
-                    <span class="funnel-text">Arrive ${arrPct}%</span>
-                </div>
+                <div class="funnel-body"><span class="funnel-text">Arrive ${arrPct}%</span></div>
             </div>
             
-            <!-- 3. Show (Amarelo) -->
             <div class="funnel-row layer-3">
                 <div class="funnel-top"></div>
-                <div class="funnel-body">
-                    <span class="funnel-text">Show ${shwPct}%</span>
-                </div>
+                <div class="funnel-body"><span class="funnel-text">Show ${shwPct}%</span></div>
             </div>
             
-            <!-- 4. CTR (Verde Claro) -->
             <div class="funnel-row layer-4">
                 <div class="funnel-top"></div>
-                <div class="funnel-body">
-                    <span class="funnel-text">CTR ${ctrPct}%</span>
-                </div>
+                <div class="funnel-body"><span class="funnel-text">CTR ${ctrPct}%</span></div>
             </div>
         </div>
     `;
 }
 
-// 7. Renderizar Gráficos Chart.js (Retirei o Funil Antigo daqui)
+// NOVO: Renderizar Gráfico de Requests por Semana com Filtro Isolado
+function renderTimeVolumeChart() {
+    const weekLabels = [...new Set(filteredData.map(d => d.semana))];
+    const loc = document.getElementById('timeVolLocadoraSelect').value;
+    
+    let dataToUse = filteredData;
+    if (loc) {
+        dataToUse = filteredData.filter(d => d.projeto === loc);
+    }
+    
+    // Agora pega apenas REQUESTS
+    const reqTempo = weekLabels.map(wk => dataToUse.filter(d => d.semana === wk).reduce((sum, d) => sum + d.request, 0));
+
+    const elTimeVol = document.getElementById('timeVolumeChart');
+    if (elTimeVol) {
+        if(charts.timeVol) charts.timeVol.destroy();
+        charts.timeVol = new Chart(elTimeVol, {
+            type: 'bar',
+            data: { labels: weekLabels, datasets: [
+                { label: 'Requests Totais', data: reqTempo, backgroundColor: '#3b82f6' }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+// 7. Renderizar Gráficos Chart.js 
 function renderCharts() {
     const monthLabels = [...new Set(filteredData.map(d => d.mes))];
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
@@ -296,26 +312,21 @@ function renderCharts() {
         });
     }
 
-    // --- 3: Volumes Totais (Request vs Arrive vs Click) (Semanas) ---
-    const reqTempo = weekLabels.map(wk => filteredData.filter(d => d.semana === wk).reduce((sum, d) => sum + d.request, 0));
-    const arrTempo = weekLabels.map(wk => filteredData.filter(d => d.semana === wk).reduce((sum, d) => sum + d.arrive, 0));
-    const clkTempo = weekLabels.map(wk => filteredData.filter(d => d.semana === wk).reduce((sum, d) => sum + d.click, 0));
-
-    const elTimeVol = document.getElementById('timeVolumeChart');
-    if (elTimeVol) {
-        if(charts.timeVol) charts.timeVol.destroy();
-        charts.timeVol = new Chart(elTimeVol, {
+    // --- NOVO: Total de Cliques por Locadora ---
+    const elClicksLoc = document.getElementById('clicksLocadoraChart');
+    if (elClicksLoc) {
+        const clicksData = locadoras.map(loc => filteredData.filter(d => d.projeto === loc).reduce((sum, d) => sum + d.click, 0));
+        if(charts.clicksLoc) charts.clicksLoc.destroy();
+        charts.clicksLoc = new Chart(elClicksLoc, {
             type: 'bar',
-            data: { labels: weekLabels, datasets: [
-                { label: 'Requests', data: reqTempo, backgroundColor: '#3b82f6' }, 
-                { label: 'Arrives', data: arrTempo, backgroundColor: '#10b981' },
-                { label: 'Clicks', data: clkTempo, backgroundColor: '#8b5cf6' }
-            ]},
+            data: { labels: locadoras, datasets: [{
+                label: 'Total de Cliques', data: clicksData, backgroundColor: '#8b5cf6'
+            }]},
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
 
-    // --- 4: Ownership por Semana ---
+    // --- 4: Ownership por Semana (Exceto CAIXA) ---
     const validOwnersData = filteredData.filter(d => !d.isCaixa);
     const owners = [...new Set(validOwnersData.map(d => d.ownership))];
     const ownerTimeDatasets = owners.map((owner, i) => {
