@@ -7,7 +7,8 @@ const CONFIG = {
     
     // 📊 Índices EXATOS das Colunas na aba "Controle" (A=0, B=1, C=2...)
     COLUMNS: {
-        PROJETO: 2,      // Coluna C (Locadora)
+        SAIDA: 1,        // Coluna B (Saída: CRM, Fura Fila, Entregafrete)
+        PROJETO: 2,      // Coluna C (Locadora: Movida, Caixa, etc)
         ENVIO: 4,        // Coluna E (Data)
         CANAL: 5,        // Coluna F (Canal)
         STATUS: 6,       // Coluna G (Status)
@@ -17,30 +18,30 @@ const CONFIG = {
         REQUEST: 17,     // Coluna R (Request)
         ARRIVE: 18,      // Coluna S (Arrive/Exposure)
         SHOW: 20,        // Coluna U (Show)
-        CLICK: 22        // Coluna W (Click)
+        CLICK: 22        // Coluna W (Cliques)
     },
     
     // 🎨 Cores Fixas para Locadoras e Canais
     COLORS: {
         LOCADORAS: {
-            'MOVIDA': '#f97316',   // Laranja
-            'CAIXA': '#0284c7',    // Azul Escuro (Caixa)
-            'SETELOC': '#10b981',  // Verde
-            'MAESTRO': '#eab308',  // Amarelo
-            'FOCO': '#ef4444',     // Vermelho
-            'BR22': '#8b5cf6',     // Roxo
-            'AUTOMOB': '#64748b',  // Cinza Azulado
-            'UNIDAS': '#14b8a6',   // Teal
-            'AVISO': '#ec4899',    // Rosa
-            'DEFAULT': '#94a3b8'   // Cinza Padrão
+            'MOVIDA': '#f97316',   
+            'CAIXA': '#0284c7',    
+            'SETELOC': '#10b981',  
+            'MAESTRO': '#eab308',  
+            'FOCO': '#ef4444',     
+            'BR22': '#8b5cf6',     
+            'AUTOMOB': '#64748b',  
+            'UNIDAS': '#14b8a6',   
+            'AVISO': '#ec4899',    
+            'DEFAULT': '#94a3b8'   
         },
         CANAIS: {
-            'POP UP': '#3b82f6',   // Azul Vivo
-            'PUSH': '#8b5cf6',     // Roxo
-            'X PANNEL': '#f59e0b', // Laranja
+            'POP UP': '#3b82f6',   
+            'PUSH': '#8b5cf6',     
+            'X PANNEL': '#f59e0b', 
             'XPANNEL': '#f59e0b',
-            'WHATSAPP': '#10b981', // Verde
-            'EMAIL': '#ef4444',    // Vermelho
+            'WHATSAPP': '#10b981', 
+            'EMAIL': '#ef4444',    
             'DEFAULT': '#94a3b8'
         }
     }
