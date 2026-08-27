@@ -19,21 +19,26 @@
         th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background: #f1f5f9; font-weight: 600; color: #334155; }
         tr:hover { background: #f8fafc; }
+
+        /* Estilos Mágicos do Funil 3D */
+        .funnel-wrapper { display: flex; flex-direction: column; align-items: center; padding: 20px 0; width: 100%; }
+        .funnel-row { position: relative; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); margin: 0 auto; width: 100%; }
         
-        /* Estilos do Funil */
-        .funnel-step {
-            transition: width 0.8s ease-in-out;
-            margin: 0 auto;
-            border-radius: 4px;
-            padding: 0.75rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            min-width: 15%; /* Para o texto não sumir */
-        }
+        .funnel-top { position: absolute; top: -14px; left: 0; width: 100%; height: 28px; background-color: #5f5f5f; border-radius: 50%; z-index: 2; }
+        .funnel-body { width: 100%; display: flex; justify-content: center; align-items: center; z-index: 1; padding-top: 5px; }
+        .funnel-text { position: relative; z-index: 3; font-size: 1.2rem; }
+        
+        .layer-1 { max-width: 340px; z-index: 4; }
+        .layer-1 .funnel-body { background-color: #df8131; clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%); height: 75px; }
+        
+        .layer-2 { max-width: 289px; z-index: 3; margin-top: -2px;} 
+        .layer-2 .funnel-body { background-color: #f1ab62; clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%); height: 65px; }
+        
+        .layer-3 { max-width: 245px; z-index: 2; margin-top: -2px;}
+        .layer-3 .funnel-body { background-color: #e8c335; clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%); height: 55px; }
+        
+        .layer-4 { max-width: 196px; z-index: 1; margin-top: -2px; color: black; text-shadow: none; }
+        .layer-4 .funnel-body { background-color: #aed99d; clip-path: polygon(0 0, 100% 0, 75% 100%, 25% 100%); height: 50px; }
     </style>
 </head>
 <body>
@@ -52,7 +57,7 @@
         </div>
 
         <div id="mainDashboard" class="hidden">
-            <!-- Filtros Principais -->
+            <!-- Filtros -->
             <div class="card grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Locadora</label>
@@ -101,9 +106,9 @@
                 </div>
             </div>
 
-            <!-- NOVO: Funil de Conversão Real com Seletor Isolado -->
+            <!-- Funil de Conversão Visual -->
             <div class="card mb-6 bg-gray-50">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-2">
                     <h3 class="font-bold text-xl text-gray-800">🔽 Funil de Conversão</h3>
                     <div class="w-full md:w-64 mt-2 md:mt-0">
                         <select id="funnelLocadoraSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800">
@@ -112,9 +117,8 @@
                     </div>
                 </div>
                 
-                <!-- O Funil será desenhado aqui dentro -->
-                <div id="funnelContainer" class="flex flex-col space-y-2 w-full max-w-4xl mx-auto min-h-[220px] justify-center">
-                    <!-- Barras injetadas via JS -->
+                <div id="funnelContainer" class="w-full">
+                    <!-- Funil gerado via JS -->
                 </div>
             </div>
 
@@ -136,7 +140,7 @@
                 <div class="chart-container"><canvas id="timeVolumeChart"></canvas></div>
             </div>
 
-            <!-- Gráficos de Base: Ownership (Geral) vs Waves (Caixa) -->
+            <!-- Gráficos de Base -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
                     <h3 class="font-bold mb-4">🚗 Frequência de Ownership por Semana (Exceto Caixa)</h3>
@@ -150,49 +154,26 @@
 
             <!-- Tabelas -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Métricas Ownership -->
                 <div class="card overflow-x-auto col-span-1">
                     <h3 class="font-bold mb-4 text-blue-800">🔑 Ownership (Locadoras Gerais)</h3>
                     <table class="w-full text-xs">
-                        <thead>
-                            <tr>
-                                <th>Ownership</th>
-                                <th>Freq</th>
-                                <th>Requests</th>
-                                <th>Clicks</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Ownership</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
                         <tbody id="ownershipTableBody"></tbody>
                     </table>
                 </div>
 
-                <!-- Métricas Caixa Waves -->
                 <div class="card overflow-x-auto col-span-1">
                     <h3 class="font-bold mb-4 text-blue-600">🏦 Bases Caixa (Waves/Lotes)</h3>
                     <table class="w-full text-xs">
-                        <thead>
-                            <tr>
-                                <th>Wave / Lote</th>
-                                <th>Freq</th>
-                                <th>Requests</th>
-                                <th>Clicks</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Wave / Lote</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
                         <tbody id="wavesTableBody"></tbody>
                     </table>
                 </div>
 
-                <!-- Ranking Top 15 -->
                 <div class="card overflow-x-auto col-span-1">
                     <h3 class="font-bold mb-4">🏆 Top Bases Abordadas (Geral)</h3>
                     <table class="w-full text-xs">
-                        <thead>
-                            <tr>
-                                <th>Descrição da Base</th>
-                                <th>Freq</th>
-                                <th>Requests Total</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Descrição da Base</th><th>Freq</th><th>Requests Total</th></tr></thead>
                         <tbody id="rankingTableBody"></tbody>
                     </table>
                 </div>
