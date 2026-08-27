@@ -7,30 +7,24 @@ let tokenClient;
 const getLocadoraColor = (nome) => CONFIG.COLORS.LOCADORAS[nome] || CONFIG.COLORS.LOCADORAS['DEFAULT'];
 const getCanalColor = (nome) => CONFIG.COLORS.CANAIS[nome] || CONFIG.COLORS.CANAIS['DEFAULT'];
 
-// 1. Inicialização e Memória de Login
+// 1. Inicialização
 function initAuth() {
-    // Verifica se já existe um token válido salvo no navegador
     const savedToken = localStorage.getItem('google_access_token');
     const tokenExpiry = localStorage.getItem('google_token_expiry');
 
     if (savedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
-        // Token é válido! Esconde o botão e busca os dados direto.
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('mainDashboard').classList.remove('hidden');
         fetchData();
     }
 
-    // Configura o cliente do Google caso precise fazer login
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope: CONFIG.SCOPES,
         callback: (response) => {
             if (response.error) { console.error('Erro Auth:', response); return; }
-            
-            // Salva o token e o tempo (1 hora de duração) na memória
             localStorage.setItem('google_access_token', response.access_token);
             localStorage.setItem('google_token_expiry', Date.now() + (response.expires_in * 1000));
-            
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
             fetchData();
@@ -40,12 +34,10 @@ function initAuth() {
     document.getElementById('authBtn').addEventListener('click', () => { tokenClient.requestAccessToken({prompt: 'consent'}); });
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
     
-    // Filtros Gerais
     ['filterSaida', 'filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterMes'].forEach(id => {
         document.getElementById(id).addEventListener('change', applyFilters);
     });
 
-    // Filtros Exclusivos dos Painéis
     document.getElementById('funnelLocadoraSelect').addEventListener('change', renderFunnel);
     document.getElementById('timeVolMesSelect').addEventListener('change', renderTimeVolumeChart);
     document.getElementById('caixaMesSelect').addEventListener('change', renderCaixaWavesChart);
@@ -55,12 +47,10 @@ function initAuth() {
 async function fetchData() {
     try {
         const token = localStorage.getItem('google_access_token');
-        
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${CONFIG.SHEET_NAME}!A:Z`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         
-        // Se o token expirou no Google, limpa a memória e recarrega a página
         if (response.status === 401) {
             localStorage.removeItem('google_access_token');
             localStorage.removeItem('google_token_expiry');
@@ -76,16 +66,16 @@ async function fetchData() {
     }
 }
 
-// FORMATO INGLÊS
+// FORMATO INGLÊS (Limpador de Números)
 const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
     let str = String(val).trim();
-    str = str.replace(/,/g, '');
+    str = str.replace(/,/g, ''); // Tira as vírgulas dos milhares
     return parseFloat(str) || 0;
 };
 
-// 3. Processar Dados
+// 3. Processar Dados com "Sanitizador Inteligente"
 function processData(rows) {
     if (!rows || rows.length < 2) return;
     
@@ -94,15 +84,26 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim(); // CRM, Fura Fila...
-        let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase(); 
-        let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase();
+        // --- 🧹 SANITIZADOR DE DADOS (Resolve problemas de digitação) ---
+        
+        // SAÍDA: Remove hífens e deixa tudo Maiúsculo (ex: "Fura-fila" -> "FURA FILA")
+        let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim().toUpperCase().replace(/-/g, ' '); 
+        if (saida === 'ENTREGAFRETE' || saida === 'ENTREGA FRETE') saida = 'ENTREGA FRETE';
+
+        // PROJETO/LOCADORA: Tira espaços duplos e garante maiúscula
+        let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase().replace(/\s+/g, ' '); 
+        
+        // CANAL: Remove hífens e corrige "XPannel" e "Pop up"
+        let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase().replace(/-/g, ' ').replace(/\s+/g, ' ');
+        if (canal === 'POPUP') canal = 'POP UP';
+        if (canal === 'XPANNEL' || canal === 'X PANEL') canal = 'X PANNEL';
+
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
-        // Exclusões
+        // 🚫 Exclusões (Se faltar canal, locadora, ou estiver mapeado)
         if (!canal || !projeto || status.includes('mapead')) continue;
         
-        // Tratamento de Tempo
+        // 📅 Tratamento de Tempo
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
         let weekLabel = 'Sem Data';
         let monthLabel = 'Sem Data';
@@ -110,7 +111,7 @@ function processData(rows) {
 
         if (dataStr) {
             let d = new Date(dataStr);
-            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000); // Ajuste de fuso BR
             if (!isNaN(d)) {
                 rawDate = d;
                 let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
@@ -120,8 +121,9 @@ function processData(rows) {
             }
         }
 
-        // Ownership, Loyalty e WAVES com Tratamento de String (Lotes -> Lote)
+        // 🚗 Ownership, Loyalty e WAVES (Tratamento para plurais)
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
+        // Converte "Lotes" para "Lote" e tira espaços duplos
         descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
         if (descBase) {
             descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
@@ -138,22 +140,31 @@ function processData(rows) {
             ownership = 'Ignorado (CAIXA)';
             wave = descBase || 'Base Indefinida';
         } else {
-            if (combinedOwnerText.includes('alugado') && combinedOwnerText.includes('terceiro')) ownership = 'Alugado e Terceiro';
-            else if (combinedOwnerText.includes('alugado')) ownership = 'Alugado';
-            else if (combinedOwnerText.includes('terceiro')) ownership = 'Terceiro';
-            else if (combinedOwnerText.includes('próprio') || combinedOwnerText.includes('proprio')) ownership = 'Próprio';
+            // Regras de Ownership (Busca palavras chave em minúsculo)
+            if (combinedOwnerText.includes('alugado') && (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad'))) {
+                ownership = 'Alugado e Terceiro';
+            } else if (combinedOwnerText.includes('alugado')) {
+                ownership = 'Alugado';
+            } else if (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad')) {
+                ownership = 'Terceiro';
+            } else if (combinedOwnerText.includes('próprio') || combinedOwnerText.includes('proprio')) {
+                ownership = 'Próprio';
+            }
         }
 
+        // Regras de Loyalty
         const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
         const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
         let loyalty = 'Não Informado';
+        
+        // Verifica do L4 para o L1 para evitar que L4 caia no L1
         if (combinedLoyaltyText.includes('l4') || combinedLoyaltyText.includes('loyalty 4')) loyalty = 'L4';
-        else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('loyalty >= 3')) loyalty = 'L3';
-        else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('loyalty = 2') || combinedLoyaltyText.includes('loyalty >= 2')) loyalty = 'L2';
+        else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('>= 3')) loyalty = 'L3';
+        else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('>= 2')) loyalty = 'L2';
         else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
 
         processed.push({
-            saida: saida || 'Sem Definição', 
+            saida: saida || 'SEM DEFINIÇÃO', 
             projeto, canal, dataInt: rawDate.getTime(), semana: weekLabel, mes: monthLabel,
             baseCrua: descBase || 'Base Genérica',
             ownership, wave, loyalty, isCaixa,
@@ -169,7 +180,7 @@ function processData(rows) {
     applyFilters();
 }
 
-// 4. Preencher Filtros
+// 4. Preencher Filtros (Dropdowns Dinâmicos)
 function populateFilters() {
     const saidas = [...new Set(rawData.map(d => d.saida))].sort();
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
@@ -178,7 +189,7 @@ function populateFilters() {
     const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
     const meses = [...new Set(rawData.map(d => d.mes))];
 
-    document.getElementById('filterSaida').innerHTML = '<option value="">Todas</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
+    document.getElementById('filterSaida').innerHTML = '<option value="">Todas as Saídas</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
     
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -195,7 +206,7 @@ function populateFilters() {
     document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
-// 5. Aplicar Filtros
+// 5. Aplicar Filtros (Gatilho quando escolhemos algo no menu superior)
 function applyFilters() {
     const fSaida = document.getElementById('filterSaida').value;
     const fProjeto = document.getElementById('filterProjeto').value;
@@ -217,12 +228,13 @@ function applyFilters() {
     renderCharts();
     renderTables();
     
+    // Dispara a re-renderização dos painéis específicos para eles lerem os dados filtrados globalmente
     renderFunnel(); 
     renderTimeVolumeChart(); 
     renderCaixaWavesChart();
 }
 
-// 6. Atualizar Scorecards
+// 6. Atualizar Scorecards (Cards Superiores)
 function updateKPIs() {
     let req = 0, arr = 0, clk = 0;
     const basesUnicas = new Set();
@@ -427,7 +439,7 @@ function renderCharts() {
     }
 }
 
-// 8. Tabelas
+// 8. Tabelas Inferiores
 function renderTables() {
     const elOwnerBody = document.getElementById('ownershipTableBody');
     if (elOwnerBody) {
@@ -465,5 +477,5 @@ function renderTables() {
     }
 }
 
-// Aguarda carregar a API do Google
+// Start
 gapi.load('client', initAuth);
