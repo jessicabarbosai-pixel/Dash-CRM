@@ -90,8 +90,15 @@ function processData(rows) {
             }
         }
 
-        // Ownership, Loyalty e WAVES
-        const descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
+        // Ownership, Loyalty e WAVES com Tratamento de String (Lotes -> Lote)
+        let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
+        
+        // CORREÇÃO: Transforma "Lotes" ou "lote" em "Lote" e apaga espaços duplos
+        descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
+        if (descBase) {
+            descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
+        }
+
         const ownerCol = (row[CONFIG.COLUMNS.OWNERSHIP] || '').trim();
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
         
@@ -275,21 +282,19 @@ function renderTimeVolumeChart() {
     }
 }
 
-// NOVO: Renderizar Gráfico Horizontal das Waves da Caixa
+// Renderizar Gráfico Horizontal das Waves da Caixa
 function renderCaixaWavesChart() {
     const mes = document.getElementById('caixaMesSelect').value;
     
     let dataToUse = filteredData.filter(d => d.isCaixa);
     if (mes) dataToUse = dataToUse.filter(d => d.mes === mes);
 
-    // Agrupa o Total de Requests por Wave/Lote
     const waveMap = {};
     dataToUse.forEach(d => {
         if(!waveMap[d.wave]) waveMap[d.wave] = 0;
         waveMap[d.wave] += d.request;
     });
 
-    // Ordena do maior para o menor e pega o Top 8
     const sortedWaves = Object.entries(waveMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
     const waveLabels = sortedWaves.map(w => w[0]);
     const waveData = sortedWaves.map(w => w[1]);
@@ -298,18 +303,18 @@ function renderCaixaWavesChart() {
     if (elCaixaWaves) {
         if(charts.caixaWaves) charts.caixaWaves.destroy();
         charts.caixaWaves = new Chart(elCaixaWaves, {
-            type: 'bar', // Tipo barra
+            type: 'bar', 
             data: { 
                 labels: waveLabels, 
                 datasets: [{
                     label: 'Volume Total de Requests',
                     data: waveData,
-                    backgroundColor: '#0284c7', // Azul Caixa
+                    backgroundColor: '#0284c7',
                     borderRadius: 4
                 }]
             },
             options: { 
-                indexAxis: 'y', // MÁGICA: Transforma as barras em Horizontais
+                indexAxis: 'y', 
                 responsive: true, 
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } }
