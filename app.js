@@ -30,8 +30,8 @@ function initAuth() {
 
     // Filtros Exclusivos dos Painéis
     document.getElementById('funnelLocadoraSelect').addEventListener('change', renderFunnel);
-    // Agora ouve a mudança de Mês do gráfico de semanas
     document.getElementById('timeVolMesSelect').addEventListener('change', renderTimeVolumeChart);
+    document.getElementById('caixaMesSelect').addEventListener('change', renderCaixaWavesChart);
 }
 
 // 2. Buscar Dados
@@ -142,18 +142,18 @@ function populateFilters() {
     const meses = [...new Set(rawData.map(d => d.mes))];
 
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
-    // O Dropdown do Funil
     document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
-    // O Dropdown de Tempo (Semanas) agora usa os meses
-    document.getElementById('timeVolMesSelect').innerHTML = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
+    document.getElementById('filterMes').innerHTML = mesHtml;
+    document.getElementById('timeVolMesSelect').innerHTML = mesHtml;
+    document.getElementById('caixaMesSelect').innerHTML = mesHtml;
     
     document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('filterOwnership').innerHTML = '<option value="">Todos</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
     document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
-    document.getElementById('filterMes').innerHTML = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
 }
 
 // 5. Aplicar Filtros
@@ -175,8 +175,11 @@ function applyFilters() {
     updateKPIs();
     renderCharts();
     renderTables();
+    
+    // Dispara as renderizações específicas dos painéis com seletores próprios
     renderFunnel(); 
     renderTimeVolumeChart(); 
+    renderCaixaWavesChart();
 }
 
 // 6. Atualizar Scorecards
@@ -202,7 +205,7 @@ function updateKPIs() {
     if (elBases) elBases.innerText = basesUnicas.size;
 }
 
-// NOVO: Renderizar Funil Visual
+// Renderizar Funil Visual
 function renderFunnel() {
     const funnelLoc = document.getElementById('funnelLocadoraSelect').value;
     const funnelContainer = document.getElementById('funnelContainer');
@@ -250,19 +253,14 @@ function renderFunnel() {
     `;
 }
 
-// NOVO: Gráfico de Semanas focado apenas no Mês escolhido
+// Renderizar Gráfico de Requests por Semana com Filtro Isolado
 function renderTimeVolumeChart() {
     const mes = document.getElementById('timeVolMesSelect').value;
     
-    // Isola as semanas com base no mês selecionado
     let dataToUse = filteredData;
-    if (mes) {
-        dataToUse = filteredData.filter(d => d.mes === mes);
-    }
+    if (mes) dataToUse = filteredData.filter(d => d.mes === mes);
     
-    // Extrai apenas as semanas presentes naquele mês específico
     const weekLabels = [...new Set(dataToUse.map(d => d.semana))];
-    
     const reqTempo = weekLabels.map(wk => dataToUse.filter(d => d.semana === wk).reduce((sum, d) => sum + d.request, 0));
 
     const elTimeVol = document.getElementById('timeVolumeChart');
@@ -278,7 +276,50 @@ function renderTimeVolumeChart() {
     }
 }
 
-// 7. Renderizar Gráficos Chart.js 
+// Renderizar Gráfico de Waves da Caixa (Linha / Tendência com Cores de Alto Contraste)
+function renderCaixaWavesChart() {
+    const mes = document.getElementById('caixaMesSelect').value;
+    
+    let dataToUse = filteredData.filter(d => d.isCaixa);
+    if (mes) dataToUse = dataToUse.filter(d => d.mes === mes);
+
+    const weekLabels = [...new Set(dataToUse.map(d => d.semana))];
+    const waves = [...new Set(dataToUse.map(d => d.wave))].slice(0, 8); 
+    
+    // Nova Paleta de Cores Distintas e Vibrantes
+    const brightPalette = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'];
+
+    const wavesDatasets = waves.map((wv, i) => {
+        const dataPoint = weekLabels.map(wk => dataToUse.filter(d => d.wave === wv && d.semana === wk).length);
+        const color = brightPalette[i % brightPalette.length];
+        return { 
+            label: wv, 
+            data: dataPoint, 
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false
+        };
+    });
+
+    const elCaixaWaves = document.getElementById('caixaWavesChart');
+    if (elCaixaWaves) {
+        if(charts.caixaWaves) charts.caixaWaves.destroy();
+        charts.caixaWaves = new Chart(elCaixaWaves, {
+            type: 'line', // Transformado em linha para ver a "Tendência"
+            data: { labels: weekLabels, datasets: wavesDatasets },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { x: { stacked: false }, y: { stacked: false } },
+                plugins: { tooltip: { mode: 'index', intersect: false } }
+            }
+        });
+    }
+}
+
+// 7. Renderizar Gráficos Chart.js Restantes
 function renderCharts() {
     const monthLabels = [...new Set(filteredData.map(d => d.mes))];
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
@@ -315,7 +356,7 @@ function renderCharts() {
         });
     }
 
-    // --- NOVO: Total de Cliques por Locadora ---
+    // --- 3: Total de Cliques por Locadora ---
     const elClicksLoc = document.getElementById('clicksLocadoraChart');
     if (elClicksLoc) {
         const clicksData = locadoras.map(loc => filteredData.filter(d => d.projeto === loc).reduce((sum, d) => sum + d.click, 0));
@@ -343,25 +384,6 @@ function renderCharts() {
         if(charts.ownerTime) charts.ownerTime.destroy();
         charts.ownerTime = new Chart(elOwnerTime, {
             type: 'bar', data: { labels: weekLabels, datasets: ownerTimeDatasets },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
-        });
-    }
-
-    // --- 5: Waves por Semana (APENAS CAIXA) ---
-    const caixaData = filteredData.filter(d => d.isCaixa);
-    const waves = [...new Set(caixaData.map(d => d.wave))].slice(0, 8); 
-    
-    const wavesDatasets = waves.map((wv, i) => {
-        const dataPoint = weekLabels.map(wk => caixaData.filter(d => d.wave === wv && d.semana === wk).length);
-        const palette = ['#0284c7', '#38bdf8', '#0369a1', '#bae6fd', '#0c4a6e', '#7dd3fc', '#0284c7'];
-        return { label: wv, data: dataPoint, backgroundColor: palette[i % palette.length] };
-    });
-
-    const elCaixaWaves = document.getElementById('caixaWavesChart');
-    if (elCaixaWaves) {
-        if(charts.caixaWaves) charts.caixaWaves.destroy();
-        charts.caixaWaves = new Chart(elCaixaWaves, {
-            type: 'bar', data: { labels: weekLabels, datasets: wavesDatasets },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
         });
     }
