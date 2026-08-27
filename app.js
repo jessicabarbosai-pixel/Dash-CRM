@@ -176,7 +176,6 @@ function applyFilters() {
     renderCharts();
     renderTables();
     
-    // Dispara as renderizações específicas dos painéis com seletores próprios
     renderFunnel(); 
     renderTimeVolumeChart(); 
     renderCaixaWavesChart();
@@ -253,7 +252,7 @@ function renderFunnel() {
     `;
 }
 
-// Renderizar Gráfico de Requests por Semana com Filtro Isolado
+// Renderizar Gráfico de Requests por Semana com Filtro de Mês
 function renderTimeVolumeChart() {
     const mes = document.getElementById('timeVolMesSelect').value;
     
@@ -276,44 +275,44 @@ function renderTimeVolumeChart() {
     }
 }
 
-// Renderizar Gráfico de Waves da Caixa (Linha / Tendência com Cores de Alto Contraste)
+// NOVO: Renderizar Gráfico Horizontal das Waves da Caixa
 function renderCaixaWavesChart() {
     const mes = document.getElementById('caixaMesSelect').value;
     
     let dataToUse = filteredData.filter(d => d.isCaixa);
     if (mes) dataToUse = dataToUse.filter(d => d.mes === mes);
 
-    const weekLabels = [...new Set(dataToUse.map(d => d.semana))];
-    const waves = [...new Set(dataToUse.map(d => d.wave))].slice(0, 8); 
-    
-    // Nova Paleta de Cores Distintas e Vibrantes
-    const brightPalette = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'];
-
-    const wavesDatasets = waves.map((wv, i) => {
-        const dataPoint = weekLabels.map(wk => dataToUse.filter(d => d.wave === wv && d.semana === wk).length);
-        const color = brightPalette[i % brightPalette.length];
-        return { 
-            label: wv, 
-            data: dataPoint, 
-            backgroundColor: color,
-            borderColor: color,
-            borderWidth: 2,
-            tension: 0.3,
-            fill: false
-        };
+    // Agrupa o Total de Requests por Wave/Lote
+    const waveMap = {};
+    dataToUse.forEach(d => {
+        if(!waveMap[d.wave]) waveMap[d.wave] = 0;
+        waveMap[d.wave] += d.request;
     });
+
+    // Ordena do maior para o menor e pega o Top 8
+    const sortedWaves = Object.entries(waveMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
+    const waveLabels = sortedWaves.map(w => w[0]);
+    const waveData = sortedWaves.map(w => w[1]);
 
     const elCaixaWaves = document.getElementById('caixaWavesChart');
     if (elCaixaWaves) {
         if(charts.caixaWaves) charts.caixaWaves.destroy();
         charts.caixaWaves = new Chart(elCaixaWaves, {
-            type: 'line', // Transformado em linha para ver a "Tendência"
-            data: { labels: weekLabels, datasets: wavesDatasets },
+            type: 'bar', // Tipo barra
+            data: { 
+                labels: waveLabels, 
+                datasets: [{
+                    label: 'Volume Total de Requests',
+                    data: waveData,
+                    backgroundColor: '#0284c7', // Azul Caixa
+                    borderRadius: 4
+                }]
+            },
             options: { 
+                indexAxis: 'y', // MÁGICA: Transforma as barras em Horizontais
                 responsive: true, 
-                maintainAspectRatio: false, 
-                scales: { x: { stacked: false }, y: { stacked: false } },
-                plugins: { tooltip: { mode: 'index', intersect: false } }
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
             }
         });
     }
