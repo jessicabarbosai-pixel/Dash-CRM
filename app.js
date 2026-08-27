@@ -24,7 +24,7 @@ function initAuth() {
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
     
     // Filtros Gerais
-    ['filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterMes'].forEach(id => {
+    ['filterSaida', 'filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterMes'].forEach(id => {
         document.getElementById(id).addEventListener('change', applyFilters);
     });
 
@@ -65,6 +65,7 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
+        let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim(); // NOVO: Puxa CRM, Fura Fila...
         let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase(); 
         let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase();
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
@@ -90,14 +91,10 @@ function processData(rows) {
             }
         }
 
-        // Ownership, Loyalty e WAVES com Tratamento de String (Lotes -> Lote)
+        // Tratamento String
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
-        
-        // CORREÇÃO: Transforma "Lotes" ou "lote" em "Lote" e apaga espaços duplos
         descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
-        if (descBase) {
-            descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
-        }
+        if (descBase) descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
 
         const ownerCol = (row[CONFIG.COLUMNS.OWNERSHIP] || '').trim();
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
@@ -125,6 +122,7 @@ function processData(rows) {
         else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
 
         processed.push({
+            saida: saida || 'Sem Definição', // Salva o nome da saída
             projeto, canal, dataInt: rawDate.getTime(), semana: weekLabel, mes: monthLabel,
             baseCrua: descBase || 'Base Genérica',
             ownership, wave, loyalty, isCaixa,
@@ -142,11 +140,15 @@ function processData(rows) {
 
 // 4. Preencher Filtros
 function populateFilters() {
+    const saidas = [...new Set(rawData.map(d => d.saida))].sort();
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
     const canais = [...new Set(rawData.map(d => d.canal))].sort();
     const owners = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.ownership))].sort();
     const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
     const meses = [...new Set(rawData.map(d => d.mes))];
+
+    // Preenche o novo Dropdown de Saída
+    document.getElementById('filterSaida').innerHTML = '<option value="">Todos</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
 
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -165,6 +167,7 @@ function populateFilters() {
 
 // 5. Aplicar Filtros
 function applyFilters() {
+    const fSaida = document.getElementById('filterSaida').value;
     const fProjeto = document.getElementById('filterProjeto').value;
     const fCanal = document.getElementById('filterCanal').value;
     const fOwner = document.getElementById('filterOwnership').value;
@@ -172,7 +175,8 @@ function applyFilters() {
     const fMes = document.getElementById('filterMes').value;
     
     filteredData = rawData.filter(d => {
-        return (!fProjeto || d.projeto === fProjeto) &&
+        return (!fSaida || d.saida === fSaida) &&
+               (!fProjeto || d.projeto === fProjeto) &&
                (!fCanal || d.canal === fCanal) &&
                (!fOwner || d.ownership === fOwner) &&
                (!fLoyalty || d.loyalty === fLoyalty) &&
@@ -259,7 +263,7 @@ function renderFunnel() {
     `;
 }
 
-// Renderizar Gráfico de Requests por Semana com Filtro de Mês
+// Renderizar Gráfico de Requests por Semana
 function renderTimeVolumeChart() {
     const mes = document.getElementById('timeVolMesSelect').value;
     
