@@ -122,7 +122,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico 3: NOVO Volumes de Requests por Semana com Seletor DE MÊS -->
+            <!-- Gráfico 3: Volumes de Requests por Semana com Seletor DE MÊS -->
             <div class="card mb-6">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                     <h3 class="font-bold text-gray-800">📅 Volumes de Requests por Semana</h3>
@@ -159,8 +159,17 @@
                     <h3 class="font-bold mb-4">🚗 Frequência de Ownership por Semana (Exceto Caixa)</h3>
                     <div class="chart-container"><canvas id="ownershipTimeChart"></canvas></div>
                 </div>
+                
+                <!-- NOVO: Gráfico da Caixa com Seletor de Mês Isolado -->
                 <div class="card">
-                    <h3 class="font-bold mb-4">🏦 Frequência de Lotes/Waves por Semana (Apenas Caixa)</h3>
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-800">🏦 Tendência de Lotes/Waves (Apenas Caixa)</h3>
+                        <div class="w-full md:w-48 mt-2 md:mt-0">
+                            <select id="caixaMesSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800 text-sm">
+                                <option value="">Todos os Meses</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="chart-container"><canvas id="caixaWavesChart"></canvas></div>
                 </div>
             </div>
