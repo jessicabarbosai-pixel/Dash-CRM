@@ -38,7 +38,7 @@
 
         <div id="mainDashboard" class="hidden">
             <!-- Filtros -->
-            <div class="card grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div class="card grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Locadora</label>
                     <select id="filterProjeto"><option value="">Todas</option></select>
@@ -49,12 +49,14 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-2">🚗 Ownership</label>
-                    <select id="filterOwnership">
-                        <option value="">Todos</option>
-                    </select>
+                    <select id="filterOwnership"><option value="">Todos</option></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">📅 Visão de Tempo</label>
+                    <label class="block text-sm font-bold mb-2">💎 Loyalty</label>
+                    <select id="filterLoyalty"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">📅 Tempo</label>
                     <select id="filterTimeView">
                         <option value="semana">Agrupar por Semana</option>
                         <option value="mes">Agrupar por Mês</option>
@@ -78,11 +80,11 @@
                     <div id="kpiArrives" class="scorecard-value">0</div>
                 </div>
                 <div class="card border-l-4 border-purple-500">
-                    <div class="text-gray-500 text-xs font-bold uppercase">CR (Conversion Rate)</div>
-                    <div id="kpiCR" class="scorecard-value">0%</div>
+                    <div class="text-gray-500 text-xs font-bold uppercase">CR (Arr/Req)</div>
+                    <div id="kpiCR" class="scorecard-value">0</div>
                 </div>
                 <div class="card border-l-4 border-orange-500">
-                    <div class="text-gray-500 text-xs font-bold uppercase">Bases Únicas Abordadas</div>
+                    <div class="text-gray-500 text-xs font-bold uppercase">Bases Abordadas</div>
                     <div id="kpiBases" class="scorecard-value">0</div>
                 </div>
             </div>
@@ -120,11 +122,11 @@
                         <thead>
                             <tr>
                                 <th>Ownership</th>
-                                <th>Frequência</th>
+                                <th>Freq (Vezes)</th>
                                 <th>Requests</th>
                                 <th>Arrives</th>
                                 <th>Shows</th>
-                                <th>CR (Arr/Req)</th>
+                                <th>CR</th>
                             </tr>
                         </thead>
                         <tbody id="ownershipTableBody"></tbody>
@@ -133,13 +135,14 @@
 
                 <!-- Ranking de Bases -->
                 <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4">🏆 Ranking de Bases Mais Abordadas</h3>
+                    <h3 class="font-bold mb-4">🏆 Ranking de Bases (Top 15)</h3>
                     <table class="w-full text-sm">
                         <thead>
                             <tr>
                                 <th>Descrição da Base</th>
                                 <th>Ownership</th>
-                                <th>Frequência</th>
+                                <th>Loyalty</th>
+                                <th>Freq (Vezes)</th>
                                 <th>Requests Total</th>
                             </tr>
                         </thead>
