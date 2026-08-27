@@ -71,11 +71,11 @@ const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
     let str = String(val).trim();
-    str = str.replace(/,/g, ''); // Tira as vírgulas dos milhares
+    str = str.replace(/,/g, ''); 
     return parseFloat(str) || 0;
 };
 
-// 3. Processar Dados com "Sanitizador Inteligente"
+// 3. Processar Dados
 function processData(rows) {
     if (!rows || rows.length < 2) return;
     
@@ -84,24 +84,20 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        // --- 🧹 SANITIZADOR DE DADOS (Resolve problemas de digitação) ---
-        
-        // SAÍDA: Remove hífens e deixa tudo Maiúsculo (ex: "Fura-fila" -> "FURA FILA")
+        // --- 🧹 SANITIZADOR DE DADOS ---
         let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim().toUpperCase().replace(/-/g, ' '); 
         if (saida === 'ENTREGAFRETE' || saida === 'ENTREGA FRETE') saida = 'ENTREGA FRETE';
 
-        // PROJETO/LOCADORA: Tira espaços duplos e garante maiúscula
         let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase().replace(/\s+/g, ' '); 
         
-        // CANAL: Remove hífens e corrige "XPannel" e "Pop up"
         let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase().replace(/-/g, ' ').replace(/\s+/g, ' ');
         if (canal === 'POPUP') canal = 'POP UP';
         if (canal === 'XPANNEL' || canal === 'X PANEL') canal = 'X PANNEL';
 
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
-        // 🚫 Exclusões (Se faltar canal, locadora, ou estiver mapeado)
-        if (!canal || !projeto || status.includes('mapead')) continue;
+        // 🚫 EXCLUSÕES (Ajustado para barrar Mapeados E Cancelados)
+        if (!canal || !projeto || status.includes('mapead') || status.includes('cancelad')) continue;
         
         // 📅 Tratamento de Tempo
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
@@ -111,7 +107,7 @@ function processData(rows) {
 
         if (dataStr) {
             let d = new Date(dataStr);
-            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000); // Ajuste de fuso BR
+            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000); 
             if (!isNaN(d)) {
                 rawDate = d;
                 let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
@@ -121,9 +117,8 @@ function processData(rows) {
             }
         }
 
-        // 🚗 Ownership, Loyalty e WAVES (Tratamento para plurais)
+        // 🚗 Ownership, Loyalty e WAVES
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
-        // Converte "Lotes" para "Lote" e tira espaços duplos
         descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
         if (descBase) {
             descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
@@ -140,7 +135,6 @@ function processData(rows) {
             ownership = 'Ignorado (CAIXA)';
             wave = descBase || 'Base Indefinida';
         } else {
-            // Regras de Ownership (Busca palavras chave em minúsculo)
             if (combinedOwnerText.includes('alugado') && (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad'))) {
                 ownership = 'Alugado e Terceiro';
             } else if (combinedOwnerText.includes('alugado')) {
@@ -152,12 +146,10 @@ function processData(rows) {
             }
         }
 
-        // Regras de Loyalty
         const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
         const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
         let loyalty = 'Não Informado';
         
-        // Verifica do L4 para o L1 para evitar que L4 caia no L1
         if (combinedLoyaltyText.includes('l4') || combinedLoyaltyText.includes('loyalty 4')) loyalty = 'L4';
         else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('>= 3')) loyalty = 'L3';
         else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('>= 2')) loyalty = 'L2';
@@ -180,7 +172,7 @@ function processData(rows) {
     applyFilters();
 }
 
-// 4. Preencher Filtros (Dropdowns Dinâmicos)
+// 4. Preencher Filtros
 function populateFilters() {
     const saidas = [...new Set(rawData.map(d => d.saida))].sort();
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
@@ -206,7 +198,7 @@ function populateFilters() {
     document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
-// 5. Aplicar Filtros (Gatilho quando escolhemos algo no menu superior)
+// 5. Aplicar Filtros 
 function applyFilters() {
     const fSaida = document.getElementById('filterSaida').value;
     const fProjeto = document.getElementById('filterProjeto').value;
@@ -228,13 +220,12 @@ function applyFilters() {
     renderCharts();
     renderTables();
     
-    // Dispara a re-renderização dos painéis específicos para eles lerem os dados filtrados globalmente
     renderFunnel(); 
     renderTimeVolumeChart(); 
     renderCaixaWavesChart();
 }
 
-// 6. Atualizar Scorecards (Cards Superiores)
+// 6. Atualizar Scorecards
 function updateKPIs() {
     let req = 0, arr = 0, clk = 0;
     const basesUnicas = new Set();
