@@ -384,7 +384,10 @@ function renderCharts() {
     const owners = [...new Set(validOwnersData.map(d => d.ownership))];
     const ownerTimeDatasets = owners.map((owner, i) => {
         const dataPoint = weekLabels.map(wk => validOwnersData.filter(d => d.ownership === owner && d.semana === wk).length);
-        const coresExtras = ['#14b8a6', '#f59e0b', '#ec4899', '#64748b'];
+        
+        // CORREÇÃO APLICADA AQUI: Array expandido para nunca repetir cores!
+        const coresExtras = ['#14b8a6', '#f59e0b', '#ec4899', '#64748b', '#3b82f6', '#ef4444', '#8b5cf6'];
+        
         return { label: owner, data: dataPoint, backgroundColor: coresExtras[i % coresExtras.length] };
     });
 
