@@ -1,0 +1,24 @@
+<!-- Filtros -->
+<div class="filters-section">
+    <select id="projetoFilter"><option>Todas Locadoras</option></select>
+    <select id="canalFilter"><option>Todos Canais</option></select>
+    <select id="ownershipFilter"><option>Todos (Próprio/Alugado)</option></select>
+</div>
+
+<!-- Scorecards -->
+<div class="scorecards-container">
+    <div class="scorecard">
+        <div class="scorecard-label">Volume Total (Requests)</div>
+        <div class="scorecard-value" id="totalRequests">-</div>
+    </div>
+    <!-- Outros Scorecards: CR, Volume por Canal... -->
+</div>
+
+<!-- Tabela de Ranking de Bases (O conjunto inteiro que você pediu) -->
+<h2 class="section-title">Ranking de Bases Abordadas</h2>
+<table>
+    <thead>
+        <tr><th>Descrição da Base</th><th>Requests (Volume)</th><th>Ownership Type</th></tr>
+    </thead>
+    <tbody id="rankingTableBody"></tbody>
+</table>
