@@ -22,11 +22,13 @@ function initAuth() {
     
     document.getElementById('authBtn').addEventListener('click', () => { tokenClient.requestAccessToken({prompt: 'consent'}); });
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
+    
+    // Filtros Gerais
     ['filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterMes'].forEach(id => {
         document.getElementById(id).addEventListener('change', applyFilters);
     });
-    
-    // Listener específico para o Funil
+
+    // Filtro Exclusivo do Funil
     document.getElementById('funnelLocadoraSelect').addEventListener('change', renderFunnel);
 }
 
@@ -43,7 +45,7 @@ async function fetchData() {
     }
 }
 
-// FORMATO INGLÊS: "1,250,500.50" -> Remove vírgulas, transforma em Float.
+// FORMATO INGLÊS: Remove vírgulas, transforma em Float.
 const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
@@ -77,7 +79,6 @@ function processData(rows) {
         if (dataStr) {
             let d = new Date(dataStr);
             d = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-
             if (!isNaN(d)) {
                 rawDate = d;
                 let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
@@ -141,7 +142,6 @@ function populateFilters() {
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
-    // O Dropdown do Funil recebe as mesmas opções
     document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -169,7 +169,7 @@ function applyFilters() {
     updateKPIs();
     renderCharts();
     renderTables();
-    renderFunnel(); // Roda o funil ao carregar ou filtrar
+    renderFunnel(); // Atualiza o Funil com os dados filtrados globalmente
 }
 
 // 6. Atualizar Scorecards
@@ -195,14 +195,14 @@ function updateKPIs() {
     if (elBases) elBases.innerText = basesUnicas.size;
 }
 
-// NOVO: Renderizar Funil Visual
+// NOVO: Renderizar Funil Visual CSS (Imitando a Imagem)
 function renderFunnel() {
     const funnelLoc = document.getElementById('funnelLocadoraSelect').value;
     const funnelContainer = document.getElementById('funnelContainer');
     
     if (!funnelContainer) return;
 
-    // Respeita os filtros gerais de mês/canal, mas aplica o filtro de locadora próprio do funil
+    // Isola a Locadora selecionada sem perder os filtros de Mês/Canal globais
     let dataForFunnel = filteredData;
     if (funnelLoc) {
         dataForFunnel = filteredData.filter(d => d.projeto === funnelLoc);
@@ -216,36 +216,50 @@ function renderFunnel() {
         clk += d.click;
     });
 
-    const max = req > 0 ? req : 1; 
+    // Cálculos respeitando o formato da Imagem de referência (Base 100%)
+    const arrPct = req > 0 ? ((arr / req) * 100).toFixed(1) : 0;
+    const shwPct = req > 0 ? ((shw / req) * 100).toFixed(1) : 0;
+    // O CTR costuma ser Click/Show, mas para manter o funil visual usamos
+    const ctrPct = shw > 0 ? ((clk / shw) * 100).toFixed(1) : 0;
 
     funnelContainer.innerHTML = `
-        <!-- Request -->
-        <div class="funnel-step bg-blue-500" style="width: 100%;">
-            <span>Requests</span>
-            <span>${req.toLocaleString('en-US')} (100%)</span>
-        </div>
-        
-        <!-- Arrive -->
-        <div class="funnel-step bg-green-500" style="width: ${arr > 0 ? (arr/max)*100 : 0}%;">
-            <span>Arrives</span>
-            <span>${arr.toLocaleString('en-US')} (${((arr/max)*100).toFixed(1)}%)</span>
-        </div>
-        
-        <!-- Show -->
-        <div class="funnel-step bg-yellow-500" style="width: ${shw > 0 ? (shw/max)*100 : 0}%;">
-            <span>Shows</span>
-            <span>${shw.toLocaleString('en-US')} (${((shw/max)*100).toFixed(1)}%)</span>
-        </div>
-        
-        <!-- Click -->
-        <div class="funnel-step bg-purple-500" style="width: ${clk > 0 ? (clk/max)*100 : 0}%;">
-            <span>Clicks</span>
-            <span>${clk.toLocaleString('en-US')} (${((clk/max)*100).toFixed(1)}%)</span>
+        <div class="funnel-wrapper">
+            <!-- 1. Base (Laranja Escuro) -->
+            <div class="funnel-row layer-1">
+                <div class="funnel-top"></div>
+                <div class="funnel-body">
+                    <span class="funnel-text">Base: ${req.toLocaleString('en-US')}</span>
+                </div>
+            </div>
+            
+            <!-- 2. Arrive (Laranja Claro) -->
+            <div class="funnel-row layer-2">
+                <div class="funnel-top"></div>
+                <div class="funnel-body">
+                    <span class="funnel-text">Arrive ${arrPct}%</span>
+                </div>
+            </div>
+            
+            <!-- 3. Show (Amarelo) -->
+            <div class="funnel-row layer-3">
+                <div class="funnel-top"></div>
+                <div class="funnel-body">
+                    <span class="funnel-text">Show ${shwPct}%</span>
+                </div>
+            </div>
+            
+            <!-- 4. CTR (Verde Claro) -->
+            <div class="funnel-row layer-4">
+                <div class="funnel-top"></div>
+                <div class="funnel-body">
+                    <span class="funnel-text">CTR ${ctrPct}%</span>
+                </div>
+            </div>
         </div>
     `;
 }
 
-// 7. Renderizar Gráficos Chart.js 
+// 7. Renderizar Gráficos Chart.js (Retirei o Funil Antigo daqui)
 function renderCharts() {
     const monthLabels = [...new Set(filteredData.map(d => d.mes))];
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
@@ -301,7 +315,7 @@ function renderCharts() {
         });
     }
 
-    // --- 4: Ownership por Semana (Exceto CAIXA) ---
+    // --- 4: Ownership por Semana ---
     const validOwnersData = filteredData.filter(d => !d.isCaixa);
     const owners = [...new Set(validOwnersData.map(d => d.ownership))];
     const ownerTimeDatasets = owners.map((owner, i) => {
