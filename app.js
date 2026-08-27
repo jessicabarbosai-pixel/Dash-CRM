@@ -21,7 +21,7 @@ function initAuth() {
     });
     
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
-    ['filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterTimeView'].forEach(id => {
+    ['filterProjeto', 'filterCanal', 'filterOwnership', 'filterLoyalty', 'filterMes'].forEach(id => {
         document.getElementById(id).addEventListener('change', applyFilters);
     });
 }
@@ -39,7 +39,7 @@ async function fetchData() {
     }
 }
 
-// 3. Processar Dados (Filtros de Canal Vazio e Mapeado + Ownership Inteligente)
+// 3. Processar Dados
 function processData(rows) {
     if (!rows || rows.length < 2) return;
     
@@ -48,14 +48,14 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase(); // Normaliza nomes
+        let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase(); 
         let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase();
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
-        // REGRA 1: Pular linhas sem canal, sem projeto, ou com status 'mapeado'
+        // Ignora vazios ou mapeados
         if (!canal || !projeto || status === 'mapeado') continue;
         
-        // Extrair Data, Semana e Mês
+        // Tratamento de Data para gerar "Julho", "Julho - Sem 1"
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
         let weekLabel = 'Sem Data';
         let monthLabel = 'Sem Data';
@@ -63,18 +63,23 @@ function processData(rows) {
 
         if (dataStr) {
             let d = new Date(dataStr);
+            // Corrige fuso horário para não pular 1 dia pra trás
+            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000); 
+
             if (!isNaN(d)) {
                 rawDate = d;
-                monthLabel = d.toLocaleDateString('pt-BR', { year: 'numeric', month: 'short' });
                 
-                let day = d.getDay();
-                let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                let startOfWeek = new Date(d.setDate(diff));
-                weekLabel = 'Sem ' + startOfWeek.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
+                // Pega o nome do mês (ex: julho) e deixa a 1ª letra maiúscula (Julho)
+                let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
+                monthLabel = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+                
+                // Calcula qual a semana dentro do mês (1 a 5)
+                let weekOfMonth = Math.ceil(d.getDate() / 7);
+                weekLabel = `${monthLabel} - Sem ${weekOfMonth}`;
             }
         }
 
-        // Ownership (Cruza dados da coluna I e M)
+        // Ownership e Loyalty
         const ownerCol = (row[CONFIG.COLUMNS.OWNERSHIP] || '').trim();
         const descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
@@ -85,7 +90,6 @@ function processData(rows) {
         else if (combinedOwnerText.includes('terceiro')) ownership = 'Terceiro';
         else if (combinedOwnerText.includes('próprio') || combinedOwnerText.includes('proprio')) ownership = 'Próprio';
 
-        // Loyalty (Cruza dados da coluna J e M)
         const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
         const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
 
@@ -95,11 +99,11 @@ function processData(rows) {
         else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('loyalty = 2') || combinedLoyaltyText.includes('loyalty >= 2')) loyalty = 'L2';
         else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
 
-        // Parse Numérico Seguro (Limpa formatação BR)
+        // Numéricos
         const parseNum = (val) => {
             if (!val) return 0;
             let str = String(val).trim();
-            if (/,/.test(str)) str = str.replace(/\./g, '').replace(',', '.'); // Ajusta "1.000,50" pra "1000.50"
+            if (/,/.test(str)) str = str.replace(/\./g, '').replace(',', '.'); 
             return parseFloat(str.replace(/[^\d.-]/g, '')) || 0;
         };
 
@@ -118,36 +122,42 @@ function processData(rows) {
         });
     }
     
-    rawData = processed.sort((a, b) => a.dataInt - b.dataInt); // Ordenar por data
+    rawData = processed.sort((a, b) => a.dataInt - b.dataInt);
     populateFilters();
     applyFilters();
 }
 
-// 4. Preencher Filtros (Dropdowns)
+// 4. Preencher Filtros
 function populateFilters() {
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
     const canais = [...new Set(rawData.map(d => d.canal))].sort();
     const owners = [...new Set(rawData.map(d => d.ownership))].sort();
     const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
+    
+    // Meses (Mantém a ordem cronológica que já veio da ordenação da Data)
+    const meses = [...new Set(rawData.map(d => d.mes))];
 
     document.getElementById('filterProjeto').innerHTML = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('filterOwnership').innerHTML = '<option value="">Todos</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
     document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
+    document.getElementById('filterMes').innerHTML = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
 }
 
-// 5. Aplicar Filtros Gerais
+// 5. Aplicar Filtros
 function applyFilters() {
     const fProjeto = document.getElementById('filterProjeto').value;
     const fCanal = document.getElementById('filterCanal').value;
     const fOwner = document.getElementById('filterOwnership').value;
     const fLoyalty = document.getElementById('filterLoyalty').value;
+    const fMes = document.getElementById('filterMes').value;
     
     filteredData = rawData.filter(d => {
         return (!fProjeto || d.projeto === fProjeto) &&
                (!fCanal || d.canal === fCanal) &&
                (!fOwner || d.ownership === fOwner) &&
-               (!fLoyalty || d.loyalty === fLoyalty);
+               (!fLoyalty || d.loyalty === fLoyalty) &&
+               (!fMes || d.mes === fMes);
     });
 
     updateKPIs();
@@ -166,7 +176,6 @@ function updateKPIs() {
         basesUnicas.add(d.baseCrua);
     });
 
-    // CR Calculado puramente sem multiplicar por 100
     const cr = req > 0 ? (arr / req).toFixed(4) : 0;
 
     document.getElementById('kpiRequests').innerText = req.toLocaleString('pt-BR');
@@ -175,18 +184,20 @@ function updateKPIs() {
     document.getElementById('kpiBases').innerText = basesUnicas.size;
 }
 
-// 7. Renderizar Gráficos
+// 7. Renderizar Gráficos (Semanas vs Meses Corrigidos)
 function renderCharts() {
-    const timeKey = document.getElementById('filterTimeView').value === 'mes' ? 'mes' : 'semana';
-    const timeLabels = [...new Set(filteredData.map(d => d[timeKey]))];
+    // Array com meses únicos e semanas únicas para os eixos
+    const monthLabels = [...new Set(filteredData.map(d => d.mes))];
+    const weekLabels = [...new Set(filteredData.map(d => d.semana))];
+    
     const c = CONFIG.COLORS;
     const colorPalette = [c.primary, c.secondary, c.success, c.warning, c.danger, c.purple, c.gray];
 
-    // --- Gráfico 1: Tendência de Requests por Locadora ---
+    // --- Gráfico 1: Tendência de Requests por Locadora (SEMPRE POR MÊS) ---
     const locadoras = [...new Set(filteredData.map(d => d.projeto))];
     const trendDatasets = locadoras.map((loc, i) => {
-        const dataPoint = timeLabels.map(time => {
-            return filteredData.filter(d => d.projeto === loc && d[timeKey] === time)
+        const dataPoint = monthLabels.map(mesTime => {
+            return filteredData.filter(d => d.projeto === loc && d.mes === mesTime)
                                .reduce((sum, d) => sum + d.request, 0);
         });
         return { label: loc, data: dataPoint, borderColor: colorPalette[i % colorPalette.length], tension: 0.3, fill: false };
@@ -194,7 +205,7 @@ function renderCharts() {
 
     if(charts.trend) charts.trend.destroy();
     charts.trend = new Chart(document.getElementById('trendLocadoraChart'), {
-        type: 'line', data: { labels: timeLabels, datasets: trendDatasets },
+        type: 'line', data: { labels: monthLabels, datasets: trendDatasets },
         options: { responsive: true, maintainAspectRatio: false }
     });
 
@@ -214,36 +225,36 @@ function renderCharts() {
         options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
     });
 
-    // --- Gráfico 3: Volumes Totais no Tempo ---
-    const reqTempo = timeLabels.map(time => filteredData.filter(d => d[timeKey] === time).reduce((sum, d) => sum + d.request, 0));
-    const arrTempo = timeLabels.map(time => filteredData.filter(d => d[timeKey] === time).reduce((sum, d) => sum + d.arrive, 0));
+    // --- Gráfico 3: Volumes Totais (Request vs Arrive) (SEMPRE POR SEMANA) ---
+    // Vai gerar rótulos como "Julho - Sem 1", "Julho - Sem 2", etc.
+    const reqTempo = weekLabels.map(weekTime => filteredData.filter(d => d.semana === weekTime).reduce((sum, d) => sum + d.request, 0));
+    const arrTempo = weekLabels.map(weekTime => filteredData.filter(d => d.semana === weekTime).reduce((sum, d) => sum + d.arrive, 0));
 
     if(charts.timeVol) charts.timeVol.destroy();
     charts.timeVol = new Chart(document.getElementById('timeVolumeChart'), {
         type: 'bar',
-        data: { labels: timeLabels, datasets: [{ label: 'Requests', data: reqTempo, backgroundColor: c.primary }, { label: 'Arrives', data: arrTempo, backgroundColor: c.success }] },
+        data: { labels: weekLabels, datasets: [{ label: 'Requests', data: reqTempo, backgroundColor: c.primary }, { label: 'Arrives', data: arrTempo, backgroundColor: c.success }] },
         options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // --- Gráfico 4: Frequência de Ownership no Tempo ---
+    // --- Gráfico 4: Frequência de Ownership (TAMBÉM POR SEMANA para ver a progressão) ---
     const owners = [...new Set(filteredData.map(d => d.ownership))];
     const ownerTimeDatasets = owners.map((owner, i) => {
-        const dataPoint = timeLabels.map(time => {
-            return filteredData.filter(d => d.ownership === owner && d[timeKey] === time).length;
+        const dataPoint = weekLabels.map(weekTime => {
+            return filteredData.filter(d => d.ownership === owner && d.semana === weekTime).length;
         });
         return { label: owner, data: dataPoint, backgroundColor: colorPalette[i % colorPalette.length] };
     });
 
     if(charts.ownerTime) charts.ownerTime.destroy();
     charts.ownerTime = new Chart(document.getElementById('ownershipTimeChart'), {
-        type: 'bar', data: { labels: timeLabels, datasets: ownerTimeDatasets },
+        type: 'bar', data: { labels: weekLabels, datasets: ownerTimeDatasets },
         options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
     });
 }
 
 // 8. Tabelas
 function renderTables() {
-    // --- Tabela de Ownership ---
     const ownerMap = {};
     filteredData.forEach(d => {
         if(!ownerMap[d.ownership]) ownerMap[d.ownership] = { freq: 0, req: 0, arr: 0, show: 0 };
@@ -266,7 +277,6 @@ function renderTables() {
     }).join('');
     document.getElementById('ownershipTableBody').innerHTML = ownerHtml;
 
-    // --- Tabela Ranking de Bases ---
     const baseMap = {};
     filteredData.forEach(d => {
         if(!baseMap[d.baseCrua]) baseMap[d.baseCrua] = { owner: d.ownership, loy: d.loyalty, freq: 0, req: 0 };
@@ -275,7 +285,6 @@ function renderTables() {
     });
 
     const ranking = Object.entries(baseMap).sort((a, b) => b[1].freq - a[1].freq).slice(0, 15);
-
     const rankingHtml = ranking.map(([base, data]) => {
         return `<tr>
             <td class="max-w-xs truncate" title="${base}">${base}</td>
