@@ -7,13 +7,30 @@ let tokenClient;
 const getLocadoraColor = (nome) => CONFIG.COLORS.LOCADORAS[nome] || CONFIG.COLORS.LOCADORAS['DEFAULT'];
 const getCanalColor = (nome) => CONFIG.COLORS.CANAIS[nome] || CONFIG.COLORS.CANAIS['DEFAULT'];
 
-// 1. Inicialização
+// 1. Inicialização e Memória de Login
 function initAuth() {
+    // Verifica se já existe um token válido salvo no navegador
+    const savedToken = localStorage.getItem('google_access_token');
+    const tokenExpiry = localStorage.getItem('google_token_expiry');
+
+    if (savedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
+        // Token é válido! Esconde o botão e busca os dados direto.
+        document.getElementById('authSection').classList.add('hidden');
+        document.getElementById('mainDashboard').classList.remove('hidden');
+        fetchData();
+    }
+
+    // Configura o cliente do Google caso precise fazer login
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope: CONFIG.SCOPES,
         callback: (response) => {
             if (response.error) { console.error('Erro Auth:', response); return; }
+            
+            // Salva o token e o tempo (1 hora de duração) na memória
+            localStorage.setItem('google_access_token', response.access_token);
+            localStorage.setItem('google_token_expiry', Date.now() + (response.expires_in * 1000));
+            
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
             fetchData();
@@ -37,9 +54,21 @@ function initAuth() {
 // 2. Buscar Dados
 async function fetchData() {
     try {
+        const token = localStorage.getItem('google_access_token');
+        
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${CONFIG.SHEET_NAME}!A:Z`, {
-            headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` }
+            headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // Se o token expirou no Google, limpa a memória e recarrega a página
+        if (response.status === 401) {
+            localStorage.removeItem('google_access_token');
+            localStorage.removeItem('google_token_expiry');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('mainDashboard').classList.add('hidden');
+            return;
+        }
+
         const result = await response.json();
         processData(result.values);
     } catch (error) {
@@ -384,10 +413,7 @@ function renderCharts() {
     const owners = [...new Set(validOwnersData.map(d => d.ownership))];
     const ownerTimeDatasets = owners.map((owner, i) => {
         const dataPoint = weekLabels.map(wk => validOwnersData.filter(d => d.ownership === owner && d.semana === wk).length);
-        
-        // CORREÇÃO APLICADA AQUI: Array expandido para nunca repetir cores!
         const coresExtras = ['#14b8a6', '#f59e0b', '#ec4899', '#64748b', '#3b82f6', '#ef4444', '#8b5cf6'];
-        
         return { label: owner, data: dataPoint, backgroundColor: coresExtras[i % coresExtras.length] };
     });
 
@@ -439,4 +465,5 @@ function renderTables() {
     }
 }
 
+// Aguarda carregar a API do Google
 gapi.load('client', initAuth);
