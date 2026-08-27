@@ -24,7 +24,7 @@
 <body>
     <div class="header text-center">
         <h1 class="text-3xl font-bold">📊 CRM Dashboard - Fura Fila</h1>
-        <p class="mt-2 text-gray-300">Performance por Locadora, Canais e Bases Abordadas</p>
+        <p class="mt-2 text-gray-300">Performance por Locadora, Canais, Ownership e Waves (Caixa)</p>
     </div>
 
     <div class="container mx-auto p-4 md:p-6">
@@ -77,8 +77,8 @@
                     <div id="kpiArrives" class="scorecard-value">0</div>
                 </div>
                 <div class="card border-l-4 border-purple-500">
-                    <div class="text-gray-500 text-xs font-bold uppercase">CR (Arr/Req)</div>
-                    <div id="kpiCR" class="scorecard-value">0</div>
+                    <div class="text-gray-500 text-xs font-bold uppercase">Volume (Clicks)</div>
+                    <div id="kpiClicks" class="scorecard-value">0</div>
                 </div>
                 <div class="card border-l-4 border-orange-500">
                     <div class="text-gray-500 text-xs font-bold uppercase">Bases Abordadas</div>
@@ -86,7 +86,13 @@
                 </div>
             </div>
 
-            <!-- Gráficos Superiores -->
+            <!-- NOVO: Funil de Conversão -->
+            <div class="card mb-6">
+                <h3 class="font-bold mb-4">🔽 Funil de Conversão (Request > Arrive > Show > Click) por Locadora</h3>
+                <div class="chart-container"><canvas id="funnelChart"></canvas></div>
+            </div>
+
+            <!-- Gráficos 1 e 2 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
                     <h3 class="font-bold mb-4">📈 Tendência de Requests por Locadora (Por Mês)</h3>
@@ -98,48 +104,66 @@
                 </div>
             </div>
 
-            <!-- Gráficos Inferiores -->
+            <!-- Gráfico 3: Volumes Totais Semanais -->
+            <div class="card mb-6">
+                <h3 class="font-bold mb-4">📅 Volumes Totais (Request vs Arrive vs Click) por Semana</h3>
+                <div class="chart-container"><canvas id="timeVolumeChart"></canvas></div>
+            </div>
+
+            <!-- Gráficos de Base: Ownership (Geral) vs Waves (Caixa) -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">📅 Volumes Totais (Request vs Arrive) por Semana</h3>
-                    <div class="chart-container"><canvas id="timeVolumeChart"></canvas></div>
+                    <h3 class="font-bold mb-4">🚗 Frequência de Ownership por Semana (Exceto Caixa)</h3>
+                    <div class="chart-container"><canvas id="ownershipTimeChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <h3 class="font-bold mb-4">🚗 Frequência de Ownership (Por Semana)</h3>
-                    <div class="chart-container"><canvas id="ownershipTimeChart"></canvas></div>
+                    <h3 class="font-bold mb-4">🏦 Frequência de Lotes/Waves por Semana (Apenas Caixa)</h3>
+                    <div class="chart-container"><canvas id="caixaWavesChart"></canvas></div>
                 </div>
             </div>
 
             <!-- Tabelas -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <!-- Métricas por Ownership -->
-                <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4">🔑 Métricas por Ownership Type</h3>
-                    <table class="w-full text-sm">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Métricas Ownership -->
+                <div class="card overflow-x-auto col-span-1">
+                    <h3 class="font-bold mb-4 text-blue-800">🔑 Ownership (Locadoras Gerais)</h3>
+                    <table class="w-full text-xs">
                         <thead>
                             <tr>
                                 <th>Ownership</th>
-                                <th>Freq (Vezes)</th>
+                                <th>Freq</th>
                                 <th>Requests</th>
-                                <th>Arrives</th>
-                                <th>Shows</th>
-                                <th>CR</th>
+                                <th>Clicks</th>
                             </tr>
                         </thead>
                         <tbody id="ownershipTableBody"></tbody>
                     </table>
                 </div>
 
-                <!-- Ranking de Bases -->
-                <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4">🏆 Ranking de Bases (Top 15)</h3>
-                    <table class="w-full text-sm">
+                <!-- Métricas Caixa Waves -->
+                <div class="card overflow-x-auto col-span-1">
+                    <h3 class="font-bold mb-4 text-blue-600">🏦 Bases Caixa (Waves/Lotes)</h3>
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th>Wave / Lote</th>
+                                <th>Freq</th>
+                                <th>Requests</th>
+                                <th>Clicks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wavesTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Ranking Top 15 -->
+                <div class="card overflow-x-auto col-span-1">
+                    <h3 class="font-bold mb-4">🏆 Top Bases Abordadas (Geral)</h3>
+                    <table class="w-full text-xs">
                         <thead>
                             <tr>
                                 <th>Descrição da Base</th>
-                                <th>Ownership</th>
-                                <th>Loyalty</th>
-                                <th>Freq (Vezes)</th>
+                                <th>Freq</th>
                                 <th>Requests Total</th>
                             </tr>
                         </thead>
