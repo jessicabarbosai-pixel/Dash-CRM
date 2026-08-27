@@ -2,19 +2,21 @@ const CONFIG = {
     // 🔑 Credenciais Google
     SHEET_ID: '1cdQakr3EvsKlKt2Ki0Avogm8ez_AIAEy8A_nPiOaNZ4',
     SHEET_NAME: 'Controle',
+    
+    // NOVO CLIENT ID COLOCADO AQUI:
     GOOGLE_CLIENT_ID: '926846773138-hssggjmr74dah1jbrobn3rffv2opubr6.apps.googleusercontent.com',
     SCOPES: 'https://www.googleapis.com/auth/spreadsheets.readonly',
     
-    // 📊 Índices das Colunas no Google Sheets (0 = A, 1 = B, etc)
+    // 📊 Índices das Colunas no Google Sheets
     COLUMNS: {
-        PROJETO: 1,      // Coluna B (Locadora)
-        TIPO: 2,         // Coluna C
-        ENVIO: 3,        // Coluna D (Data)
-        CANAL: 5,        // Coluna F (Canal)
-        DESC_BASE: 7,    // Coluna H (Descrição Base / Ownership)
-        REQUEST: 11,     // Coluna L (Request / Volume)
-        CLICK: 16,       // Coluna Q (Click)
-        CTR: 18          // Coluna S (CTR)
+        PROJETO: 1,      
+        TIPO: 2,         
+        ENVIO: 3,        
+        CANAL: 5,        
+        DESC_BASE: 7,    
+        REQUEST: 11,     
+        CLICK: 16,       
+        CTR: 18          
     },
     
     // 🎨 Cores do Dashboard
