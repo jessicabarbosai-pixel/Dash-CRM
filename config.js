@@ -16,17 +16,32 @@ const CONFIG = {
         DESC_BASE: 12,   // Coluna M (Descrição Base)
         REQUEST: 17,     // Coluna R (Request)
         ARRIVE: 18,      // Coluna S (Arrive/Exposure)
-        SHOW: 20         // Coluna U (Show)
+        SHOW: 20,        // Coluna U (Show)
+        CLICK: 22        // Coluna W (Cliques)
     },
     
-    // 🎨 Cores do Dashboard
+    // 🎨 Cores Fixas para Locadoras e Canais
     COLORS: {
-        primary: '#4f46e5',
-        secondary: '#0ea5e9',
-        success: '#10b981',
-        warning: '#f59e0b',
-        danger: '#ef4444',
-        purple: '#8b5cf6',
-        gray: '#64748b'
+        LOCADORAS: {
+            'MOVIDA': '#f97316',   // Laranja
+            'CAIXA': '#0284c7',    // Azul Escuro (Caixa)
+            'SETELOC': '#10b981',  // Verde
+            'MAESTRO': '#eab308',  // Amarelo
+            'FOCO': '#ef4444',     // Vermelho
+            'BR22': '#8b5cf6',     // Roxo
+            'AUTOMOB': '#64748b',  // Cinza Azulado
+            'UNIDAS': '#14b8a6',   // Teal
+            'AVISO': '#ec4899',    // Rosa
+            'DEFAULT': '#94a3b8'   // Cinza Padrão
+        },
+        CANAIS: {
+            'POP UP': '#3b82f6',   // Azul Vivo
+            'PUSH': '#8b5cf6',     // Roxo
+            'X PANNEL': '#f59e0b', // Laranja
+            'XPANNEL': '#f59e0b',
+            'WHATSAPP': '#10b981', // Verde
+            'EMAIL': '#ef4444',    // Vermelho
+            'DEFAULT': '#94a3b8'
+        }
     }
 };
