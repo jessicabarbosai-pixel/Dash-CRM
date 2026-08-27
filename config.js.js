@@ -2,7 +2,7 @@ const CONFIG = {
     // 🔑 Credenciais Google
     SHEET_ID: '1cdQakr3EvsKlKt2Ki0Avogm8ez_AIAEy8A_nPiOaNZ4',
     SHEET_NAME: 'Controle',
-    GOOGLE_CLIENT_ID: '926846773138-jom868tevolali8fgibvq1m01plm8vo6.apps.googleusercontent.com',
+    GOOGLE_CLIENT_ID: '926846773138-hssggjmr74dah1jbrobn3rffv2opubr6.apps.googleusercontent.com',
     SCOPES: 'https://www.googleapis.com/auth/spreadsheets.readonly',
     
     // 📊 Índices das Colunas no Google Sheets (0 = A, 1 = B, etc)
