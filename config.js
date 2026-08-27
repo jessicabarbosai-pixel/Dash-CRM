@@ -7,8 +7,8 @@ const CONFIG = {
     
     // 📊 Índices EXATOS das Colunas na aba "Controle" (A=0, B=1, C=2...)
     COLUMNS: {
-        SAIDA: 1,        // Coluna B (Saída: CRM, Fura Fila, Entregafrete)
-        PROJETO: 2,      // Coluna C (Locadora: Movida, Caixa, etc)
+        SAIDA: 1,        // Coluna B (Saída: Fura Fila, CRM, Entregafrete)
+        PROJETO: 2,      // Coluna C (Locadora)
         ENVIO: 4,        // Coluna E (Data)
         CANAL: 5,        // Coluna F (Canal)
         STATUS: 6,       // Coluna G (Status)
