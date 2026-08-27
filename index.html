@@ -56,11 +56,8 @@
                     <select id="filterLoyalty"><option value="">Todos</option></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">📅 Tempo</label>
-                    <select id="filterTimeView">
-                        <option value="semana">Agrupar por Semana</option>
-                        <option value="mes">Agrupar por Mês</option>
-                    </select>
+                    <label class="block text-sm font-bold mb-2">📅 Mês</label>
+                    <select id="filterMes"><option value="">Todos os Meses</option></select>
                 </div>
                 <div class="flex items-end">
                     <button id="refreshBtn" class="bg-gray-800 text-white w-full py-2 rounded hover:bg-gray-700">
@@ -92,7 +89,7 @@
             <!-- Gráficos Superiores -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">📈 Tendência de Requests por Locadora</h3>
+                    <h3 class="font-bold mb-4">📈 Tendência de Requests por Locadora (Por Mês)</h3>
                     <div class="chart-container"><canvas id="trendLocadoraChart"></canvas></div>
                 </div>
                 <div class="card">
@@ -104,11 +101,11 @@
             <!-- Gráficos Inferiores -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">📅 Volumes Totais (Request vs Arrive)</h3>
+                    <h3 class="font-bold mb-4">📅 Volumes Totais (Request vs Arrive) por Semana</h3>
                     <div class="chart-container"><canvas id="timeVolumeChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <h3 class="font-bold mb-4">🚗 Frequência de Ownership no Tempo (Abordagens)</h3>
+                    <h3 class="font-bold mb-4">🚗 Frequência de Ownership (Por Semana)</h3>
                     <div class="chart-container"><canvas id="ownershipTimeChart"></canvas></div>
                 </div>
             </div>
