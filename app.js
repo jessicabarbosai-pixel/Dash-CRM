@@ -66,12 +66,11 @@ async function fetchData() {
     }
 }
 
-// FORMATO INGLÊS (Limpador de Números)
 const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
     let str = String(val).trim();
-    str = str.replace(/,/g, ''); 
+    str = str.replace(/,/g, '');
     return parseFloat(str) || 0;
 };
 
@@ -84,22 +83,18 @@ function processData(rows) {
     for(let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        // --- 🧹 SANITIZADOR DE DADOS ---
         let saida = (row[CONFIG.COLUMNS.SAIDA] || '').trim().toUpperCase().replace(/-/g, ' '); 
         if (saida === 'ENTREGAFRETE' || saida === 'ENTREGA FRETE') saida = 'ENTREGA FRETE';
 
         let projeto = (row[CONFIG.COLUMNS.PROJETO] || '').trim().toUpperCase().replace(/\s+/g, ' '); 
-        
         let canal = (row[CONFIG.COLUMNS.CANAL] || '').trim().toUpperCase().replace(/-/g, ' ').replace(/\s+/g, ' ');
         if (canal === 'POPUP') canal = 'POP UP';
         if (canal === 'XPANNEL' || canal === 'X PANEL') canal = 'X PANNEL';
 
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
-        // 🚫 EXCLUSÕES (Ajustado para barrar Mapeados E Cancelados)
         if (!canal || !projeto || status.includes('mapead') || status.includes('cancelad')) continue;
         
-        // 📅 Tratamento de Tempo
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
         let weekLabel = 'Sem Data';
         let monthLabel = 'Sem Data';
@@ -107,7 +102,7 @@ function processData(rows) {
 
         if (dataStr) {
             let d = new Date(dataStr);
-            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000); 
+            d = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
             if (!isNaN(d)) {
                 rawDate = d;
                 let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
@@ -117,7 +112,6 @@ function processData(rows) {
             }
         }
 
-        // 🚗 Ownership, Loyalty e WAVES
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
         descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
         if (descBase) {
@@ -182,7 +176,6 @@ function populateFilters() {
     const meses = [...new Set(rawData.map(d => d.mes))];
 
     document.getElementById('filterSaida').innerHTML = '<option value="">Todas as Saídas</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
-    
     const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
@@ -198,7 +191,7 @@ function populateFilters() {
     document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
-// 5. Aplicar Filtros 
+// 5. Aplicar Filtros
 function applyFilters() {
     const fSaida = document.getElementById('filterSaida').value;
     const fProjeto = document.getElementById('filterProjeto').value;
@@ -299,7 +292,6 @@ function renderFunnel() {
 // Renderizar Gráfico de Requests por Semana
 function renderTimeVolumeChart() {
     const mes = document.getElementById('timeVolMesSelect').value;
-    
     let dataToUse = filteredData;
     if (mes) dataToUse = filteredData.filter(d => d.mes === mes);
     
@@ -311,9 +303,7 @@ function renderTimeVolumeChart() {
         if(charts.timeVol) charts.timeVol.destroy();
         charts.timeVol = new Chart(elTimeVol, {
             type: 'bar',
-            data: { labels: weekLabels, datasets: [
-                { label: 'Requests Totais', data: reqTempo, backgroundColor: '#3b82f6' }
-            ]},
+            data: { labels: weekLabels, datasets: [{ label: 'Requests Totais', data: reqTempo, backgroundColor: '#3b82f6' }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
@@ -322,7 +312,6 @@ function renderTimeVolumeChart() {
 // Renderizar Gráfico Horizontal das Waves da Caixa
 function renderCaixaWavesChart() {
     const mes = document.getElementById('caixaMesSelect').value;
-    
     let dataToUse = filteredData.filter(d => d.isCaixa);
     if (mes) dataToUse = dataToUse.filter(d => d.mes === mes);
 
@@ -333,29 +322,17 @@ function renderCaixaWavesChart() {
     });
 
     const sortedWaves = Object.entries(waveMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
-    const waveLabels = sortedWaves.map(w => w[0]);
-    const waveData = sortedWaves.map(w => w[1]);
-
+    
     const elCaixaWaves = document.getElementById('caixaWavesChart');
     if (elCaixaWaves) {
         if(charts.caixaWaves) charts.caixaWaves.destroy();
         charts.caixaWaves = new Chart(elCaixaWaves, {
             type: 'bar', 
             data: { 
-                labels: waveLabels, 
-                datasets: [{
-                    label: 'Volume Total de Requests',
-                    data: waveData,
-                    backgroundColor: '#0284c7',
-                    borderRadius: 4
-                }]
+                labels: sortedWaves.map(w => w[0]), 
+                datasets: [{ label: 'Volume', data: sortedWaves.map(w => w[1]), backgroundColor: '#0284c7', borderRadius: 4 }]
             },
-            options: { 
-                indexAxis: 'y', 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
 }
@@ -366,72 +343,99 @@ function renderCharts() {
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
     const locadoras = [...new Set(filteredData.map(d => d.projeto))];
 
-    // --- 1: Tendência de Requests por Locadora (Meses) ---
-    const trendDatasets = locadoras.map(loc => {
-        const dataPoint = monthLabels.map(mesTime => filteredData.filter(d => d.projeto === loc && d.mes === mesTime).reduce((sum, d) => sum + d.request, 0));
-        return { label: loc, data: dataPoint, borderColor: getLocadoraColor(loc), tension: 0.3, fill: false };
-    });
+    // --- NOVO 1: Eficiência por Canal (CTR) ---
+    const elCtrCanal = document.getElementById('ctrCanalChart');
+    if (elCtrCanal) {
+        const canaisAtivos = [...new Set(filteredData.map(d => d.canal))];
+        const canalStats = canaisAtivos.map(c => {
+            const dadosCanal = filteredData.filter(d => d.canal === c);
+            const shw = dadosCanal.reduce((acc, d) => acc + d.show, 0);
+            const clk = dadosCanal.reduce((acc, d) => acc + d.click, 0);
+            const ctr = shw > 0 ? (clk / shw) * 100 : 0;
+            return { canal: c, ctr: ctr, color: getCanalColor(c) };
+        }).sort((a, b) => b.ctr - a.ctr); // Maior pro menor
 
+        if(charts.ctrCanal) charts.ctrCanal.destroy();
+        charts.ctrCanal = new Chart(elCtrCanal, {
+            type: 'bar',
+            data: {
+                labels: canalStats.map(c => c.canal),
+                datasets: [{ label: 'CTR (%)', data: canalStats.map(c => c.ctr), backgroundColor: canalStats.map(c => c.color), borderRadius: 4 }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // --- NOVO 2: Distribuição por Loyalty (Bar Chart) ---
+    const elLoyalty = document.getElementById('loyaltyChart');
+    if (elLoyalty) {
+        const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Não Informado'];
+        const loyaltyStats = loyaltiesUnicos.map(l => filteredData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
+        // Cores estratégicas (L4 em dourado)
+        const loyaltyColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#eab308', '#e2e8f0']; 
+
+        if(charts.loyalty) charts.loyalty.destroy();
+        charts.loyalty = new Chart(elLoyalty, {
+            type: 'bar',
+            data: {
+                labels: loyaltiesUnicos,
+                datasets: [{ label: 'Requests Totais', data: loyaltyStats, backgroundColor: loyaltyColors, borderRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // --- Tendência de Requests por Locadora ---
     const elTrend = document.getElementById('trendLocadoraChart');
     if (elTrend) {
-        if(charts.trend) charts.trend.destroy();
-        charts.trend = new Chart(elTrend, {
-            type: 'line', data: { labels: monthLabels, datasets: trendDatasets },
-            options: { responsive: true, maintainAspectRatio: false }
+        const trendDatasets = locadoras.map(loc => {
+            const dataPoint = monthLabels.map(mesTime => filteredData.filter(d => d.projeto === loc && d.mes === mesTime).reduce((sum, d) => sum + d.request, 0));
+            return { label: loc, data: dataPoint, borderColor: getLocadoraColor(loc), tension: 0.3, fill: false };
         });
+        if(charts.trend) charts.trend.destroy();
+        charts.trend = new Chart(elTrend, { type: 'line', data: { labels: monthLabels, datasets: trendDatasets }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
-    // --- 2: Volumes por Locadora e Canal ---
-    const canais = [...new Set(filteredData.map(d => d.canal))];
-    const locadoraCanalDatasets = canais.map(canal => {
-        const dataPoint = locadoras.map(loc => filteredData.filter(d => d.projeto === loc && d.canal === canal).reduce((sum, d) => sum + d.request, 0));
-        return { label: canal, data: dataPoint, backgroundColor: getCanalColor(canal) };
-    });
-
+    // --- Volumes por Locadora e Canal ---
     const elLocCanal = document.getElementById('locadoraCanalChart');
     if (elLocCanal) {
-        if(charts.locCanal) charts.locCanal.destroy();
-        charts.locCanal = new Chart(elLocCanal, {
-            type: 'bar', data: { labels: locadoras, datasets: locadoraCanalDatasets },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+        const canais = [...new Set(filteredData.map(d => d.canal))];
+        const locadoraCanalDatasets = canais.map(canal => {
+            const dataPoint = locadoras.map(loc => filteredData.filter(d => d.projeto === loc && d.canal === canal).reduce((sum, d) => sum + d.request, 0));
+            return { label: canal, data: dataPoint, backgroundColor: getCanalColor(canal) };
         });
+        if(charts.locCanal) charts.locCanal.destroy();
+        charts.locCanal = new Chart(elLocCanal, { type: 'bar', data: { labels: locadoras, datasets: locadoraCanalDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
     }
 
-    // --- 3: Total de Cliques por Locadora ---
+    // --- Total de Cliques por Locadora ---
     const elClicksLoc = document.getElementById('clicksLocadoraChart');
     if (elClicksLoc) {
         const clicksData = locadoras.map(loc => filteredData.filter(d => d.projeto === loc).reduce((sum, d) => sum + d.click, 0));
         if(charts.clicksLoc) charts.clicksLoc.destroy();
-        charts.clicksLoc = new Chart(elClicksLoc, {
-            type: 'bar',
-            data: { labels: locadoras, datasets: [{
-                label: 'Total de Cliques', data: clicksData, backgroundColor: '#8b5cf6'
-            }]},
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        charts.clicksLoc = new Chart(elClicksLoc, { type: 'bar', data: { labels: locadoras, datasets: [{ label: 'Total de Cliques', data: clicksData, backgroundColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
-    // --- 4: Ownership por Semana (Exceto CAIXA) ---
-    const validOwnersData = filteredData.filter(d => !d.isCaixa);
-    const owners = [...new Set(validOwnersData.map(d => d.ownership))];
-    const ownerTimeDatasets = owners.map((owner, i) => {
-        const dataPoint = weekLabels.map(wk => validOwnersData.filter(d => d.ownership === owner && d.semana === wk).length);
-        const coresExtras = ['#14b8a6', '#f59e0b', '#ec4899', '#64748b', '#3b82f6', '#ef4444', '#8b5cf6'];
-        return { label: owner, data: dataPoint, backgroundColor: coresExtras[i % coresExtras.length] };
-    });
-
+    // --- Ownership por Semana ---
     const elOwnerTime = document.getElementById('ownershipTimeChart');
     if (elOwnerTime) {
-        if(charts.ownerTime) charts.ownerTime.destroy();
-        charts.ownerTime = new Chart(elOwnerTime, {
-            type: 'bar', data: { labels: weekLabels, datasets: ownerTimeDatasets },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+        const validOwnersData = filteredData.filter(d => !d.isCaixa);
+        const owners = [...new Set(validOwnersData.map(d => d.ownership))];
+        const ownerTimeDatasets = owners.map((owner, i) => {
+            const dataPoint = weekLabels.map(wk => validOwnersData.filter(d => d.ownership === owner && d.semana === wk).length);
+            const coresExtras = ['#14b8a6', '#f59e0b', '#ec4899', '#64748b', '#3b82f6', '#ef4444', '#8b5cf6'];
+            return { label: owner, data: dataPoint, backgroundColor: coresExtras[i % coresExtras.length] };
         });
+        if(charts.ownerTime) charts.ownerTime.destroy();
+        charts.ownerTime = new Chart(elOwnerTime, { type: 'bar', data: { labels: weekLabels, datasets: ownerTimeDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
     }
 }
 
 // 8. Tabelas Inferiores
 function renderTables() {
+    const formatUS = (n) => n.toLocaleString('en-US');
+
+    // Ownership Table
     const elOwnerBody = document.getElementById('ownershipTableBody');
     if (elOwnerBody) {
         const ownerMap = {};
@@ -441,9 +445,10 @@ function renderTables() {
             ownerMap[d.ownership].req += d.request;
             ownerMap[d.ownership].clk += d.click;
         });
-        elOwnerBody.innerHTML = Object.entries(ownerMap).map(([owner, data]) => `<tr><td class="font-bold">${owner}</td><td>${data.freq}x</td><td>${data.req.toLocaleString('en-US')}</td><td>${data.clk.toLocaleString('en-US')}</td></tr>`).join('');
+        elOwnerBody.innerHTML = Object.entries(ownerMap).map(([owner, data]) => `<tr><td class="font-bold">${owner}</td><td>${data.freq}x</td><td>${formatUS(data.req)}</td><td>${formatUS(data.clk)}</td></tr>`).join('');
     }
 
+    // Waves Table
     const elWavesBody = document.getElementById('wavesTableBody');
     if (elWavesBody) {
         const waveMap = {};
@@ -453,18 +458,43 @@ function renderTables() {
             waveMap[d.wave].req += d.request;
             waveMap[d.wave].clk += d.click;
         });
-        elWavesBody.innerHTML = Object.entries(waveMap).sort((a, b) => b[1].freq - a[1].freq).slice(0,10).map(([wave, data]) => `<tr><td class="font-bold truncate max-w-[150px]" title="${wave}">${wave}</td><td>${data.freq}x</td><td>${data.req.toLocaleString('en-US')}</td><td>${data.clk.toLocaleString('en-US')}</td></tr>`).join('');
+        elWavesBody.innerHTML = Object.entries(waveMap).sort((a, b) => b[1].freq - a[1].freq).slice(0,10).map(([wave, data]) => `<tr><td class="font-bold truncate max-w-[150px]" title="${wave}">${wave}</td><td>${data.freq}x</td><td>${formatUS(data.req)}</td><td>${formatUS(data.clk)}</td></tr>`).join('');
     }
+
+    // Ranking Geral (Por Volume)
+    const baseMap = {};
+    filteredData.forEach(d => {
+        if(!baseMap[d.baseCrua]) baseMap[d.baseCrua] = { freq: 0, req: 0 };
+        baseMap[d.baseCrua].freq += 1;
+        baseMap[d.baseCrua].req += d.request;
+    });
 
     const elRankingBody = document.getElementById('rankingTableBody');
     if (elRankingBody) {
-        const baseMap = {};
+        elRankingBody.innerHTML = Object.entries(baseMap).sort((a, b) => b[1].freq - a[1].freq).slice(0, 15).map(([base, data]) => `<tr><td class="truncate max-w-[150px]" title="${base}">${base}</td><td class="font-bold">${data.freq}x</td><td>${formatUS(data.req)}</td></tr>`).join('');
+    }
+
+    // NOVO: Tabela Top 15 por CTR (Mínimo de 100 Requests para ser rankeado)
+    const elRankingCtrBody = document.getElementById('rankingCtrTableBody');
+    if (elRankingCtrBody) {
+        const baseCtrMap = {};
         filteredData.forEach(d => {
-            if(!baseMap[d.baseCrua]) baseMap[d.baseCrua] = { freq: 0, req: 0 };
-            baseMap[d.baseCrua].freq += 1;
-            baseMap[d.baseCrua].req += d.request;
+            if(!baseCtrMap[d.baseCrua]) baseCtrMap[d.baseCrua] = { req: 0, shw: 0, clk: 0 };
+            baseCtrMap[d.baseCrua].req += d.request;
+            baseCtrMap[d.baseCrua].shw += d.show;
+            baseCtrMap[d.baseCrua].clk += d.click;
         });
-        elRankingBody.innerHTML = Object.entries(baseMap).sort((a, b) => b[1].freq - a[1].freq).slice(0, 15).map(([base, data]) => `<tr><td class="truncate max-w-[150px]" title="${base}">${base}</td><td class="font-bold">${data.freq}x</td><td>${data.req.toLocaleString('en-US')}</td></tr>`).join('');
+
+        const topCtr = Object.entries(baseCtrMap)
+            .filter(([_, data]) => data.req >= 100) // Trava de segurança: Mínimo 100 envios!
+            .map(([base, data]) => {
+                const ctr = data.shw > 0 ? (data.clk / data.shw) * 100 : 0;
+                return { base, req: data.req, shw: data.shw, ctr };
+            })
+            .sort((a, b) => b.ctr - a.ctr)
+            .slice(0, 15);
+
+        elRankingCtrBody.innerHTML = topCtr.map(data => `<tr><td class="truncate max-w-[150px]" title="${data.base}">${data.base}</td><td>${formatUS(data.req)}</td><td>${formatUS(data.shw)}</td><td class="font-bold text-green-600">${data.ctr.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}%</td></tr>`).join('');
     }
 }
 
