@@ -93,6 +93,7 @@ function processData(rows) {
 
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
+        // Exclusions
         if (!canal || !projeto || status.includes('mapead') || status.includes('cancelad')) continue;
         
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
@@ -128,10 +129,10 @@ function processData(rows) {
 
         if (isCaixa) {
             ownership = 'Ignored (CAIXA)';
-            loyalty = 'Ignored (CAIXA)'; // EXCLUINDO CAIXA DO LOYALTY
+            loyalty = 'Ignored (CAIXA)';
             wave = descBase || 'Undefined Base';
         } else {
-            // Regras de Ownership
+            // Ownership rules (Portuguese detection, English output)
             if (combinedOwnerText.includes('alugado') && (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad'))) {
                 ownership = 'Rented & Third-Party';
             } else if (combinedOwnerText.includes('alugado')) {
@@ -142,7 +143,7 @@ function processData(rows) {
                 ownership = 'Owned';
             }
 
-            // Regras de Loyalty
+            // Loyalty Rules
             const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
             const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
             
@@ -175,11 +176,11 @@ function populateFilters() {
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
     const canais = [...new Set(rawData.map(d => d.canal))].sort();
     const owners = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.ownership))].sort();
-    const loyalties = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.loyalty))].sort(); // AGORA IGNORA CAIXA NO FILTRO DE LOYALTY
+    const loyalties = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.loyalty))].sort();
     const meses = [...new Set(rawData.map(d => d.mes))];
 
     document.getElementById('filterSaida').innerHTML = '<option value="">All Outputs</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
-    const projHtml = '<option value="">All</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    const projHtml = '<option value="">All Companies</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     const mesHtml = '<option value="">All Months</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
@@ -189,9 +190,9 @@ function populateFilters() {
     document.getElementById('timeVolMesSelect').innerHTML = mesHtml;
     document.getElementById('caixaMesSelect').innerHTML = mesHtml;
     
-    document.getElementById('filterCanal').innerHTML = '<option value="">All</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
-    document.getElementById('filterOwnership').innerHTML = '<option value="">All</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
-    document.getElementById('filterLoyalty').innerHTML = '<option value="">All</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
+    document.getElementById('filterCanal').innerHTML = '<option value="">All Channels</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('filterOwnership').innerHTML = '<option value="">All Ownerships</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
+    document.getElementById('filterLoyalty').innerHTML = '<option value="">All Loyalties</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
 // 5. Apply Filters
@@ -369,10 +370,10 @@ function renderCharts() {
         });
     }
 
-    // --- Loyalty Distribution (Excluindo Caixa da visão) ---
+    // --- Loyalty Distribution (Excluding Caixa) ---
     const elLoyalty = document.getElementById('loyaltyChart');
     if (elLoyalty) {
-        const validLoyaltyData = filteredData.filter(d => !d.isCaixa); // AGORA A CAIXA SUMIU DAQUI
+        const validLoyaltyData = filteredData.filter(d => !d.isCaixa);
         const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Not Informed'];
         const loyaltyStats = loyaltiesUnicos.map(l => validLoyaltyData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
         const loyaltyColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#eab308', '#e2e8f0']; 
