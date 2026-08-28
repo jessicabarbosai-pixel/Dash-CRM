@@ -3,11 +3,11 @@ let filteredData = [];
 let charts = {};
 let tokenClient;
 
-// Helpers de Cores
+// Color Helpers
 const getLocadoraColor = (nome) => CONFIG.COLORS.LOCADORAS[nome] || CONFIG.COLORS.LOCADORAS['DEFAULT'];
 const getCanalColor = (nome) => CONFIG.COLORS.CANAIS[nome] || CONFIG.COLORS.CANAIS['DEFAULT'];
 
-// 1. Inicialização
+// 1. Initialization
 function initAuth() {
     const savedToken = localStorage.getItem('google_access_token');
     const tokenExpiry = localStorage.getItem('google_token_expiry');
@@ -22,7 +22,7 @@ function initAuth() {
         client_id: CONFIG.GOOGLE_CLIENT_ID,
         scope: CONFIG.SCOPES,
         callback: (response) => {
-            if (response.error) { console.error('Erro Auth:', response); return; }
+            if (response.error) { console.error('Auth Error:', response); return; }
             localStorage.setItem('google_access_token', response.access_token);
             localStorage.setItem('google_token_expiry', Date.now() + (response.expires_in * 1000));
             document.getElementById('authSection').classList.add('hidden');
@@ -43,7 +43,7 @@ function initAuth() {
     document.getElementById('caixaMesSelect').addEventListener('change', renderCaixaWavesChart);
 }
 
-// 2. Buscar Dados
+// 2. Fetch Data
 async function fetchData() {
     try {
         const token = localStorage.getItem('google_access_token');
@@ -62,7 +62,7 @@ async function fetchData() {
         const result = await response.json();
         processData(result.values);
     } catch (error) {
-        console.error("Erro ao ler planilha:", error);
+        console.error("Spreadsheet Error:", error);
     }
 }
 
@@ -74,7 +74,7 @@ const parseNum = (val) => {
     return parseFloat(str) || 0;
 };
 
-// 3. Processar Dados
+// 3. Process Data
 function processData(rows) {
     if (!rows || rows.length < 2) return;
     
@@ -93,11 +93,12 @@ function processData(rows) {
 
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
+        // Exclusions
         if (!canal || !projeto || status.includes('mapead') || status.includes('cancelad')) continue;
         
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
-        let weekLabel = 'Sem Data';
-        let monthLabel = 'Sem Data';
+        let weekLabel = 'No Date';
+        let monthLabel = 'No Date';
         let rawDate = new Date(0);
 
         if (dataStr) {
@@ -105,15 +106,15 @@ function processData(rows) {
             d = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
             if (!isNaN(d)) {
                 rawDate = d;
-                let nomeMes = d.toLocaleDateString('pt-BR', { month: 'long' });
+                let nomeMes = d.toLocaleDateString('en-US', { month: 'long' });
                 monthLabel = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
                 let weekOfMonth = Math.ceil(d.getDate() / 7);
-                weekLabel = `${monthLabel} - Sem ${weekOfMonth}`;
+                weekLabel = `${monthLabel} - Wk ${weekOfMonth}`;
             }
         }
 
         let descBase = (row[CONFIG.COLUMNS.DESC_BASE] || '').trim();
-        descBase = descBase.replace(/lotes/gi, 'Lote').replace(/lote/gi, 'Lote').replace(/\s+/g, ' ').trim();
+        descBase = descBase.replace(/lotes/gi, 'Lot').replace(/lote/gi, 'Lot').replace(/\s+/g, ' ').trim();
         if (descBase) {
             descBase = descBase.charAt(0).toUpperCase() + descBase.slice(1);
         }
@@ -122,27 +123,28 @@ function processData(rows) {
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
         
         let isCaixa = projeto === 'CAIXA';
-        let ownership = 'Outros/Não Identificado';
-        let wave = 'Não se aplica';
+        let ownership = 'Others/Not Identified';
+        let wave = 'N/A';
 
+        // NOTE: The spreadsheet logic still looks for Portuguese words, but displays in English
         if (isCaixa) {
-            ownership = 'Ignorado (CAIXA)';
-            wave = descBase || 'Base Indefinida';
+            ownership = 'Ignored (CAIXA)';
+            wave = descBase || 'Undefined Base';
         } else {
             if (combinedOwnerText.includes('alugado') && (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad'))) {
-                ownership = 'Alugado e Terceiro';
+                ownership = 'Rented & Third-Party';
             } else if (combinedOwnerText.includes('alugado')) {
-                ownership = 'Alugado';
+                ownership = 'Rented';
             } else if (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad')) {
-                ownership = 'Terceiro';
+                ownership = 'Third-Party';
             } else if (combinedOwnerText.includes('próprio') || combinedOwnerText.includes('proprio')) {
-                ownership = 'Próprio';
+                ownership = 'Owned';
             }
         }
 
         const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
         const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
-        let loyalty = 'Não Informado';
+        let loyalty = 'Not Informed';
         
         if (combinedLoyaltyText.includes('l4') || combinedLoyaltyText.includes('loyalty 4')) loyalty = 'L4';
         else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('>= 3')) loyalty = 'L3';
@@ -150,9 +152,9 @@ function processData(rows) {
         else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
 
         processed.push({
-            saida: saida || 'SEM DEFINIÇÃO', 
+            saida: saida || 'UNDEFINED', 
             projeto, canal, dataInt: rawDate.getTime(), semana: weekLabel, mes: monthLabel,
-            baseCrua: descBase || 'Base Genérica',
+            baseCrua: descBase || 'Generic Base',
             ownership, wave, loyalty, isCaixa,
             request: parseNum(row[CONFIG.COLUMNS.REQUEST]),
             arrive: parseNum(row[CONFIG.COLUMNS.ARRIVE]),
@@ -166,7 +168,7 @@ function processData(rows) {
     applyFilters();
 }
 
-// 4. Preencher Filtros
+// 4. Fill Filters
 function populateFilters() {
     const saidas = [...new Set(rawData.map(d => d.saida))].sort();
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
@@ -175,23 +177,23 @@ function populateFilters() {
     const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
     const meses = [...new Set(rawData.map(d => d.mes))];
 
-    document.getElementById('filterSaida').innerHTML = '<option value="">Todas as Saídas</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
-    const projHtml = '<option value="">Todas</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
-    const mesHtml = '<option value="">Todos os Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
+    document.getElementById('filterSaida').innerHTML = '<option value="">All Outputs</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
+    const projHtml = '<option value="">All</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    const mesHtml = '<option value="">All Months</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
     
     document.getElementById('filterProjeto').innerHTML = projHtml;
-    document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">Todas as Locadoras</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.getElementById('funnelLocadoraSelect').innerHTML = '<option value="">All Companies</option>' + projetos.map(p => `<option value="${p}">${p}</option>`).join('');
     
     document.getElementById('filterMes').innerHTML = mesHtml;
     document.getElementById('timeVolMesSelect').innerHTML = mesHtml;
     document.getElementById('caixaMesSelect').innerHTML = mesHtml;
     
-    document.getElementById('filterCanal').innerHTML = '<option value="">Todos</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
-    document.getElementById('filterOwnership').innerHTML = '<option value="">Todos</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
-    document.getElementById('filterLoyalty').innerHTML = '<option value="">Todos</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
+    document.getElementById('filterCanal').innerHTML = '<option value="">All</option>' + canais.map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('filterOwnership').innerHTML = '<option value="">All</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
+    document.getElementById('filterLoyalty').innerHTML = '<option value="">All</option>' + loyalties.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
-// 5. Aplicar Filtros
+// 5. Apply Filters
 function applyFilters() {
     const fSaida = document.getElementById('filterSaida').value;
     const fProjeto = document.getElementById('filterProjeto').value;
@@ -218,7 +220,7 @@ function applyFilters() {
     renderCaixaWavesChart();
 }
 
-// 6. Atualizar Scorecards
+// 6. Update Scorecards
 function updateKPIs() {
     let req = 0, arr = 0, clk = 0;
     const basesUnicas = new Set();
@@ -241,7 +243,7 @@ function updateKPIs() {
     if (elBases) elBases.innerText = basesUnicas.size;
 }
 
-// Renderizar Funil Visual
+// Render Funnel
 function renderFunnel() {
     const funnelLoc = document.getElementById('funnelLocadoraSelect').value;
     const funnelContainer = document.getElementById('funnelContainer');
@@ -258,7 +260,7 @@ function renderFunnel() {
         clk += d.click;
     });
 
-    const formatPct = (val) => val.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 1});
+    const formatPct = (val) => val.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 1});
 
     const arrPct = req > 0 ? formatPct((arr / req) * 100) : 0;
     const shwPct = req > 0 ? formatPct((shw / req) * 100) : 0;
@@ -289,7 +291,7 @@ function renderFunnel() {
     `;
 }
 
-// Renderizar Gráfico de Requests por Semana
+// Render Weekly Request Volumes
 function renderTimeVolumeChart() {
     const mes = document.getElementById('timeVolMesSelect').value;
     let dataToUse = filteredData;
@@ -303,13 +305,13 @@ function renderTimeVolumeChart() {
         if(charts.timeVol) charts.timeVol.destroy();
         charts.timeVol = new Chart(elTimeVol, {
             type: 'bar',
-            data: { labels: weekLabels, datasets: [{ label: 'Requests Totais', data: reqTempo, backgroundColor: '#3b82f6' }] },
+            data: { labels: weekLabels, datasets: [{ label: 'Total Requests', data: reqTempo, backgroundColor: '#3b82f6' }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
 }
 
-// Renderizar Gráfico Horizontal das Waves da Caixa
+// Render Caixa Waves
 function renderCaixaWavesChart() {
     const mes = document.getElementById('caixaMesSelect').value;
     let dataToUse = filteredData.filter(d => d.isCaixa);
@@ -337,13 +339,13 @@ function renderCaixaWavesChart() {
     }
 }
 
-// 7. Renderizar Gráficos Chart.js Restantes
+// 7. Render Charts
 function renderCharts() {
     const monthLabels = [...new Set(filteredData.map(d => d.mes))];
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
     const locadoras = [...new Set(filteredData.map(d => d.projeto))];
 
-    // --- NOVO 1: Eficiência por Canal (CTR) ---
+    // --- Efficiency by Channel (CTR) ---
     const elCtrCanal = document.getElementById('ctrCanalChart');
     if (elCtrCanal) {
         const canaisAtivos = [...new Set(filteredData.map(d => d.canal))];
@@ -353,7 +355,7 @@ function renderCharts() {
             const clk = dadosCanal.reduce((acc, d) => acc + d.click, 0);
             const ctr = shw > 0 ? (clk / shw) * 100 : 0;
             return { canal: c, ctr: ctr, color: getCanalColor(c) };
-        }).sort((a, b) => b.ctr - a.ctr); // Maior pro menor
+        }).sort((a, b) => b.ctr - a.ctr);
 
         if(charts.ctrCanal) charts.ctrCanal.destroy();
         charts.ctrCanal = new Chart(elCtrCanal, {
@@ -366,12 +368,11 @@ function renderCharts() {
         });
     }
 
-    // --- NOVO 2: Distribuição por Loyalty (Bar Chart) ---
+    // --- Loyalty Distribution ---
     const elLoyalty = document.getElementById('loyaltyChart');
     if (elLoyalty) {
-        const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Não Informado'];
+        const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Not Informed'];
         const loyaltyStats = loyaltiesUnicos.map(l => filteredData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
-        // Cores estratégicas (L4 em dourado)
         const loyaltyColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#eab308', '#e2e8f0']; 
 
         if(charts.loyalty) charts.loyalty.destroy();
@@ -379,13 +380,13 @@ function renderCharts() {
             type: 'bar',
             data: {
                 labels: loyaltiesUnicos,
-                datasets: [{ label: 'Requests Totais', data: loyaltyStats, backgroundColor: loyaltyColors, borderRadius: 4 }]
+                datasets: [{ label: 'Total Requests', data: loyaltyStats, backgroundColor: loyaltyColors, borderRadius: 4 }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
 
-    // --- Tendência de Requests por Locadora ---
+    // --- Request Trend by Company ---
     const elTrend = document.getElementById('trendLocadoraChart');
     if (elTrend) {
         const trendDatasets = locadoras.map(loc => {
@@ -396,7 +397,7 @@ function renderCharts() {
         charts.trend = new Chart(elTrend, { type: 'line', data: { labels: monthLabels, datasets: trendDatasets }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
-    // --- Volumes por Locadora e Canal ---
+    // --- Volumes by Company and Channel ---
     const elLocCanal = document.getElementById('locadoraCanalChart');
     if (elLocCanal) {
         const canais = [...new Set(filteredData.map(d => d.canal))];
@@ -408,15 +409,15 @@ function renderCharts() {
         charts.locCanal = new Chart(elLocCanal, { type: 'bar', data: { labels: locadoras, datasets: locadoraCanalDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
     }
 
-    // --- Total de Cliques por Locadora ---
+    // --- Total Clicks by Company ---
     const elClicksLoc = document.getElementById('clicksLocadoraChart');
     if (elClicksLoc) {
         const clicksData = locadoras.map(loc => filteredData.filter(d => d.projeto === loc).reduce((sum, d) => sum + d.click, 0));
         if(charts.clicksLoc) charts.clicksLoc.destroy();
-        charts.clicksLoc = new Chart(elClicksLoc, { type: 'bar', data: { labels: locadoras, datasets: [{ label: 'Total de Cliques', data: clicksData, backgroundColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        charts.clicksLoc = new Chart(elClicksLoc, { type: 'bar', data: { labels: locadoras, datasets: [{ label: 'Total Clicks', data: clicksData, backgroundColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
-    // --- Ownership por Semana ---
+    // --- Ownership per Week ---
     const elOwnerTime = document.getElementById('ownershipTimeChart');
     if (elOwnerTime) {
         const validOwnersData = filteredData.filter(d => !d.isCaixa);
@@ -431,7 +432,7 @@ function renderCharts() {
     }
 }
 
-// 8. Tabelas Inferiores
+// 8. Bottom Tables
 function renderTables() {
     const formatUS = (n) => n.toLocaleString('en-US');
 
@@ -461,7 +462,7 @@ function renderTables() {
         elWavesBody.innerHTML = Object.entries(waveMap).sort((a, b) => b[1].freq - a[1].freq).slice(0,10).map(([wave, data]) => `<tr><td class="font-bold truncate max-w-[150px]" title="${wave}">${wave}</td><td>${data.freq}x</td><td>${formatUS(data.req)}</td><td>${formatUS(data.clk)}</td></tr>`).join('');
     }
 
-    // Ranking Geral (Por Volume)
+    // Ranking
     const baseMap = {};
     filteredData.forEach(d => {
         if(!baseMap[d.baseCrua]) baseMap[d.baseCrua] = { freq: 0, req: 0 };
@@ -474,7 +475,7 @@ function renderTables() {
         elRankingBody.innerHTML = Object.entries(baseMap).sort((a, b) => b[1].freq - a[1].freq).slice(0, 15).map(([base, data]) => `<tr><td class="truncate max-w-[150px]" title="${base}">${base}</td><td class="font-bold">${data.freq}x</td><td>${formatUS(data.req)}</td></tr>`).join('');
     }
 
-    // NOVO: Tabela Top 15 por CTR (Mínimo de 100 Requests para ser rankeado)
+    // CTR Table
     const elRankingCtrBody = document.getElementById('rankingCtrTableBody');
     if (elRankingCtrBody) {
         const baseCtrMap = {};
@@ -486,7 +487,7 @@ function renderTables() {
         });
 
         const topCtr = Object.entries(baseCtrMap)
-            .filter(([_, data]) => data.req >= 100) // Trava de segurança: Mínimo 100 envios!
+            .filter(([_, data]) => data.req >= 100) 
             .map(([base, data]) => {
                 const ctr = data.shw > 0 ? (data.clk / data.shw) * 100 : 0;
                 return { base, req: data.req, shw: data.shw, ctr };
@@ -494,7 +495,7 @@ function renderTables() {
             .sort((a, b) => b.ctr - a.ctr)
             .slice(0, 15);
 
-        elRankingCtrBody.innerHTML = topCtr.map(data => `<tr><td class="truncate max-w-[150px]" title="${data.base}">${data.base}</td><td>${formatUS(data.req)}</td><td>${formatUS(data.shw)}</td><td class="font-bold text-green-600">${data.ctr.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}%</td></tr>`).join('');
+        elRankingCtrBody.innerHTML = topCtr.map(data => `<tr><td class="truncate max-w-[150px]" title="${data.base}">${data.base}</td><td>${formatUS(data.req)}</td><td>${formatUS(data.shw)}</td><td class="font-bold text-green-600">${data.ctr.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})}%</td></tr>`).join('');
     }
 }
 
