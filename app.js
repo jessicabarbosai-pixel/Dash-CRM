@@ -66,12 +66,11 @@ async function fetchData() {
     }
 }
 
-// FORMATO INGLÊS: Converte números puros e as porcentagens brutas da Coluna X
+// Number Parser
 const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'number') return val;
     let str = String(val).trim();
-    // Se a coluna X vier com "%", removemos para ter um número decimal
     str = str.replace(/,/g, '').replace(/%/g, '');
     return parseFloat(str) || 0;
 };
@@ -123,10 +122,12 @@ function processData(rows) {
         const ownerCol = (row[CONFIG.COLUMNS.OWNERSHIP] || '').trim();
         const combinedOwnerText = (ownerCol + " " + descBase).toLowerCase();
         
-        let isCaixa = projeto === 'CAIXA';
+        // BLOQUEIO TOTAL DA CAIXA: Qualquer célula que contenha a palavra CAIXA
+        let isCaixa = projeto.includes('CAIXA') || saida.includes('CAIXA'); 
+        
         let ownership = 'Others/Not Identified';
         let wave = 'N/A';
-        let loyalty = 'Not Informed'; // Padrão
+        let loyalty = 'Not Informed'; 
 
         if (isCaixa) {
             ownership = 'Ignored (CAIXA)';
@@ -152,12 +153,10 @@ function processData(rows) {
             else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
         }
 
-        // NOVO: Lê a Coluna X para a taxa de Cliques
+        // Lê a Coluna X para a taxa de Cliques (CTR)
         let rawClickPct = row[CONFIG.COLUMNS.CLICK_PCT] || '0';
-        // Se no Sheets ele for "0.05", queremos converter para 5% na visualização
         let clickPctValue = parseNum(rawClickPct);
         if (clickPctValue < 1 && clickPctValue > 0 && String(rawClickPct).includes('.')) {
-            // Se o Google enviou o valor decimal puro (ex: 0.05 invés de 5%)
             clickPctValue = clickPctValue * 100;
         }
 
@@ -170,7 +169,7 @@ function processData(rows) {
             arrive: parseNum(row[CONFIG.COLUMNS.ARRIVE]),
             show: parseNum(row[CONFIG.COLUMNS.SHOW]),
             click: parseNum(row[CONFIG.COLUMNS.CLICK]),
-            clickPct: clickPctValue // Armazena a coluna X
+            clickPct: clickPctValue
         });
     }
     
@@ -185,10 +184,7 @@ function populateFilters() {
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
     const canais = [...new Set(rawData.map(d => d.canal))].sort();
     const owners = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.ownership))].sort();
-    
-    // LOYALTY: CORTAMOS COMPLETAMENTE A CAIXA E OS IGNOREDS DAQUI
     const loyalties = [...new Set(rawData.filter(d => !d.isCaixa && !d.loyalty.includes('Ignored')).map(d => d.loyalty))].sort();
-    
     const meses = [...new Set(rawData.map(d => d.mes))];
 
     document.getElementById('filterSaida').innerHTML = '<option value="">All Outputs</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -278,8 +274,6 @@ function renderFunnel() {
 
     const arrPct = req > 0 ? formatPct((arr / req) * 100) : 0;
     const shwPct = req > 0 ? formatPct((shw / req) * 100) : 0;
-    // CTR no Funil visual: (Click/Show) padrão ou (Click/Request) dependendo da ótica do negócio.
-    // Usaremos (Click/Request) como você mencionou "request / click para sair as porcentagens" no Funil geral.
     const ctrPct = req > 0 ? formatPct((clk / req) * 100) : 0;
 
     funnelContainer.innerHTML = `
@@ -361,16 +355,13 @@ function renderCharts() {
     const weekLabels = [...new Set(filteredData.map(d => d.semana))];
     const locadoras = [...new Set(filteredData.map(d => d.projeto))];
 
-    // --- Efficiency by Channel (LENDO A COLUNA X DIRETAMENTE) ---
+    // --- Efficiency by Channel (CTR da Coluna X) ---
     const elCtrCanal = document.getElementById('ctrCanalChart');
     if (elCtrCanal) {
         const canaisAtivos = [...new Set(filteredData.map(d => d.canal))];
         const canalStats = canaisAtivos.map(c => {
             const dadosCanal = filteredData.filter(d => d.canal === c);
-            
-            // SOMA das porcentagens da Coluna X
             const sumPct = dadosCanal.reduce((acc, d) => acc + d.clickPct, 0);
-            
             return { canal: c, ctr: sumPct, color: getCanalColor(c) };
         }).sort((a, b) => b.ctr - a.ctr);
 
@@ -385,10 +376,10 @@ function renderCharts() {
         });
     }
 
-    // --- Loyalty Distribution (Excluding Caixa COMPLETA) ---
+    // --- Loyalty Distribution (Forçando exclusão da Caixa) ---
     const elLoyalty = document.getElementById('loyaltyChart');
     if (elLoyalty) {
-        const validLoyaltyData = filteredData.filter(d => !d.isCaixa);
+        const validLoyaltyData = filteredData.filter(d => !d.isCaixa && !d.projeto.includes('CAIXA') && !d.saida.includes('CAIXA'));
         const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Not Informed'];
         const loyaltyStats = loyaltiesUnicos.map(l => validLoyaltyData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
         const loyaltyColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#eab308', '#e2e8f0']; 
@@ -493,7 +484,7 @@ function renderTables() {
         elRankingBody.innerHTML = Object.entries(baseMap).sort((a, b) => b[1].freq - a[1].freq).slice(0, 15).map(([base, data]) => `<tr><td class="truncate max-w-[150px]" title="${base}">${base}</td><td class="font-bold">${data.freq}x</td><td>${formatUS(data.req)}</td></tr>`).join('');
     }
 
-    // CTR Table (Usando Clicks/Requests conforme solicitado)
+    // CTR Table (Clicks/Requests)
     const elRankingCtrBody = document.getElementById('rankingCtrTableBody');
     if (elRankingCtrBody) {
         const baseCtrMap = {};
