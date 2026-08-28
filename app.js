@@ -93,7 +93,6 @@ function processData(rows) {
 
         let status = (row[CONFIG.COLUMNS.STATUS] || '').trim().toLowerCase();
         
-        // Exclusions
         if (!canal || !projeto || status.includes('mapead') || status.includes('cancelad')) continue;
         
         let dataStr = row[CONFIG.COLUMNS.ENVIO] || '';
@@ -125,12 +124,14 @@ function processData(rows) {
         let isCaixa = projeto === 'CAIXA';
         let ownership = 'Others/Not Identified';
         let wave = 'N/A';
+        let loyalty = 'Not Informed';
 
-        // NOTE: The spreadsheet logic still looks for Portuguese words, but displays in English
         if (isCaixa) {
             ownership = 'Ignored (CAIXA)';
+            loyalty = 'Ignored (CAIXA)'; // EXCLUINDO CAIXA DO LOYALTY
             wave = descBase || 'Undefined Base';
         } else {
+            // Regras de Ownership
             if (combinedOwnerText.includes('alugado') && (combinedOwnerText.includes('terceiro') || combinedOwnerText.includes('terceirizad'))) {
                 ownership = 'Rented & Third-Party';
             } else if (combinedOwnerText.includes('alugado')) {
@@ -140,16 +141,16 @@ function processData(rows) {
             } else if (combinedOwnerText.includes('próprio') || combinedOwnerText.includes('proprio')) {
                 ownership = 'Owned';
             }
-        }
 
-        const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
-        const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
-        let loyalty = 'Not Informed';
-        
-        if (combinedLoyaltyText.includes('l4') || combinedLoyaltyText.includes('loyalty 4')) loyalty = 'L4';
-        else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('>= 3')) loyalty = 'L3';
-        else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('>= 2')) loyalty = 'L2';
-        else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
+            // Regras de Loyalty
+            const loyaltyCol = (row[CONFIG.COLUMNS.LOYALTY] || '').trim();
+            const combinedLoyaltyText = (loyaltyCol + " " + descBase).toLowerCase();
+            
+            if (combinedLoyaltyText.includes('l4') || combinedLoyaltyText.includes('loyalty 4')) loyalty = 'L4';
+            else if (combinedLoyaltyText.includes('l3') || combinedLoyaltyText.includes('loyalty 3') || combinedLoyaltyText.includes('>= 3')) loyalty = 'L3';
+            else if (combinedLoyaltyText.includes('l2') || combinedLoyaltyText.includes('loyalty 2') || combinedLoyaltyText.includes('>= 2')) loyalty = 'L2';
+            else if (combinedLoyaltyText.includes('l1') || combinedLoyaltyText.includes('loyalty 1')) loyalty = 'L1';
+        }
 
         processed.push({
             saida: saida || 'UNDEFINED', 
@@ -174,7 +175,7 @@ function populateFilters() {
     const projetos = [...new Set(rawData.map(d => d.projeto))].sort();
     const canais = [...new Set(rawData.map(d => d.canal))].sort();
     const owners = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.ownership))].sort();
-    const loyalties = [...new Set(rawData.map(d => d.loyalty))].sort();
+    const loyalties = [...new Set(rawData.filter(d => !d.isCaixa).map(d => d.loyalty))].sort(); // AGORA IGNORA CAIXA NO FILTRO DE LOYALTY
     const meses = [...new Set(rawData.map(d => d.mes))];
 
     document.getElementById('filterSaida').innerHTML = '<option value="">All Outputs</option>' + saidas.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -368,11 +369,12 @@ function renderCharts() {
         });
     }
 
-    // --- Loyalty Distribution ---
+    // --- Loyalty Distribution (Excluindo Caixa da visão) ---
     const elLoyalty = document.getElementById('loyaltyChart');
     if (elLoyalty) {
+        const validLoyaltyData = filteredData.filter(d => !d.isCaixa); // AGORA A CAIXA SUMIU DAQUI
         const loyaltiesUnicos = ['L1', 'L2', 'L3', 'L4', 'Not Informed'];
-        const loyaltyStats = loyaltiesUnicos.map(l => filteredData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
+        const loyaltyStats = loyaltiesUnicos.map(l => validLoyaltyData.filter(d => d.loyalty === l).reduce((acc, d) => acc + d.request, 0));
         const loyaltyColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#eab308', '#e2e8f0']; 
 
         if(charts.loyalty) charts.loyalty.destroy();
