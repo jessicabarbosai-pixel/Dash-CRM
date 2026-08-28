@@ -20,7 +20,7 @@
         th { background: #f1f5f9; font-weight: 600; color: #334155; }
         tr:hover { background: #f8fafc; }
 
-        /* Estilos do Funil 3D */
+        /* Estilos Mágicos do Funil 3D */
         .funnel-wrapper { display: flex; flex-direction: column; align-items: center; padding: 20px 0; width: 100%; }
         .funnel-row { position: relative; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); margin: 0 auto; width: 100%; }
         
@@ -44,7 +44,7 @@
 <body>
     <div class="header text-center">
         <h1 class="text-3xl font-bold">📊 CRM Dashboard - Fura Fila</h1>
-        <p class="mt-2 text-gray-300">Performance por Locadora, Canais, Ownership e Waves (Caixa)</p>
+        <p class="mt-2 text-gray-300">Performance por Locadora, Canais, Ownership, Loyalty e Waves</p>
     </div>
 
     <div class="container mx-auto p-4 md:p-6">
@@ -143,6 +143,18 @@
                 <div class="chart-container"><canvas id="clicksLocadoraChart"></canvas></div>
             </div>
 
+            <!-- NOVOS GRÁFICOS: Eficiência e Fidelização -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="card">
+                    <h3 class="font-bold mb-4">🎯 Eficiência (CTR %) por Canal</h3>
+                    <div class="chart-container"><canvas id="ctrCanalChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3 class="font-bold mb-4">💎 Distribuição por Loyalty (Requests)</h3>
+                    <div class="chart-container"><canvas id="loyaltyChart"></canvas></div>
+                </div>
+            </div>
+
             <!-- Gráficos 1 e 2 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
@@ -175,9 +187,9 @@
                 </div>
             </div>
 
-            <!-- Tabelas -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <div class="card overflow-x-auto col-span-1">
+            <!-- Tabelas (Agora em Matriz 2x2 para melhor leitura) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="card overflow-x-auto">
                     <h3 class="font-bold mb-4 text-blue-800">🔑 Ownership (Locadoras Gerais)</h3>
                     <table class="w-full text-xs">
                         <thead><tr><th>Ownership</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
@@ -185,7 +197,7 @@
                     </table>
                 </div>
 
-                <div class="card overflow-x-auto col-span-1">
+                <div class="card overflow-x-auto">
                     <h3 class="font-bold mb-4 text-blue-600">🏦 Bases Caixa (Waves/Lotes)</h3>
                     <table class="w-full text-xs">
                         <thead><tr><th>Wave / Lote</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
@@ -193,11 +205,21 @@
                     </table>
                 </div>
 
-                <div class="card overflow-x-auto col-span-1">
-                    <h3 class="font-bold mb-4">🏆 Top Bases Abordadas (Geral)</h3>
+                <div class="card overflow-x-auto">
+                    <h3 class="font-bold mb-4">🏆 Top Bases Abordadas (Volume)</h3>
                     <table class="w-full text-xs">
                         <thead><tr><th>Descrição da Base</th><th>Freq</th><th>Requests Total</th></tr></thead>
                         <tbody id="rankingTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- NOVA TABELA DE CTR -->
+                <div class="card overflow-x-auto">
+                    <h3 class="font-bold mb-4 text-green-700">⭐ Top Bases por Conversão (Melhor CTR)</h3>
+                    <p class="text-xs text-gray-500 mb-2">*Apenas bases com mais de 100 requests enviados</p>
+                    <table class="w-full text-xs">
+                        <thead><tr><th>Descrição da Base</th><th>Requests</th><th>Shows</th><th>CTR (%)</th></tr></thead>
+                        <tbody id="rankingCtrTableBody"></tbody>
                     </table>
                 </div>
             </div>
