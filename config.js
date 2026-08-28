@@ -18,7 +18,8 @@ const CONFIG = {
         REQUEST: 17,     // Coluna R (Request)
         ARRIVE: 18,      // Coluna S (Arrive/Exposure)
         SHOW: 20,        // Coluna U (Show)
-        CLICK: 22        // Coluna W (Cliques)
+        CLICK: 22,       // Coluna W (Cliques Numéricos)
+        CLICK_PCT: 23    // Coluna X (Cliques Porcentagem - Eficiência)
     },
     
     // 🎨 Cores Fixas para Locadoras e Canais
