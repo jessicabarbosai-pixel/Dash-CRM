@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +20,7 @@
         th { background: #f1f5f9; font-weight: 600; color: #334155; }
         tr:hover { background: #f8fafc; }
 
-        /* Estilos Mágicos do Funil 3D */
+        /* 3D Funnel Styles */
         .funnel-wrapper { display: flex; flex-direction: column; align-items: center; padding: 20px 0; width: 100%; }
         .funnel-row { position: relative; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); margin: 0 auto; width: 100%; }
         
@@ -44,49 +44,48 @@
 <body>
     <div class="header text-center">
         <h1 class="text-3xl font-bold">📊 CRM Dashboard - Fura Fila</h1>
-        <p class="mt-2 text-gray-300">Performance por Locadora, Canais, Ownership, Loyalty e Waves</p>
+        <p class="mt-2 text-gray-300">Performance by Company, Channel, Ownership, Loyalty, and Waves</p>
     </div>
 
     <div class="container mx-auto p-4 md:p-6">
-        <!-- Autenticação -->
+        <!-- Authentication -->
         <div id="authSection" class="card text-center max-w-md mx-auto my-8">
-            <h2 class="text-xl font-bold mb-4">Acesso aos Dados</h2>
+            <h2 class="text-xl font-bold mb-4">Data Access</h2>
             <button id="authBtn" class="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 transition">
-                <i class="fab fa-google mr-2"></i> Conectar Planilha
+                <i class="fab fa-google mr-2"></i> Connect Spreadsheet
             </button>
         </div>
 
         <div id="mainDashboard" class="hidden">
-            <!-- Filtros Principais -->
+            <!-- Main Filters -->
             <div class="card grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
-                <!-- Filtro de Saída -->
                 <div>
-                    <label class="block text-sm font-bold mb-2">🚀 Saída (Projeto)</label>
-                    <select id="filterSaida"><option value="">Todas</option></select>
+                    <label class="block text-sm font-bold mb-2">🚀 Output (Project)</label>
+                    <select id="filterSaida"><option value="">All</option></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">🏢 Locadora</label>
-                    <select id="filterProjeto"><option value="">Todas</option></select>
+                    <label class="block text-sm font-bold mb-2">🏢 Company</label>
+                    <select id="filterProjeto"><option value="">All</option></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">📱 Canal</label>
-                    <select id="filterCanal"><option value="">Todos</option></select>
+                    <label class="block text-sm font-bold mb-2">📱 Channel</label>
+                    <select id="filterCanal"><option value="">All</option></select>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-2">🚗 Ownership</label>
-                    <select id="filterOwnership"><option value="">Todos</option></select>
+                    <select id="filterOwnership"><option value="">All</option></select>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-2">💎 Loyalty</label>
-                    <select id="filterLoyalty"><option value="">Todos</option></select>
+                    <select id="filterLoyalty"><option value="">All</option></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">📅 Mês</label>
-                    <select id="filterMes"><option value="">Todos os Meses</option></select>
+                    <label class="block text-sm font-bold mb-2">📅 Month</label>
+                    <select id="filterMes"><option value="">All Months</option></select>
                 </div>
                 <div class="flex items-end">
                     <button id="refreshBtn" class="bg-gray-800 text-white w-full py-2 rounded hover:bg-gray-700">
-                        <i class="fas fa-sync-alt mr-2"></i> Atualizar
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh
                     </button>
                 </div>
             </div>
@@ -106,80 +105,80 @@
                     <div id="kpiClicks" class="scorecard-value">0</div>
                 </div>
                 <div class="card border-l-4 border-orange-500">
-                    <div class="text-gray-500 text-xs font-bold uppercase">Bases Abordadas</div>
+                    <div class="text-gray-500 text-xs font-bold uppercase">Targeted Bases</div>
                     <div id="kpiBases" class="scorecard-value">0</div>
                 </div>
             </div>
 
-            <!-- Funil de Conversão Visual -->
+            <!-- Visual Conversion Funnel -->
             <div class="card mb-6 bg-gray-50">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-2">
-                    <h3 class="font-bold text-xl text-gray-800">🔽 Funil de Conversão</h3>
+                    <h3 class="font-bold text-xl text-gray-800">🔽 Conversion Funnel</h3>
                     <div class="w-full md:w-64 mt-2 md:mt-0">
                         <select id="funnelLocadoraSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800">
-                            <option value="">Todas as Locadoras</option>
+                            <option value="">All Companies</option>
                         </select>
                     </div>
                 </div>
                 <div id="funnelContainer" class="w-full"></div>
             </div>
 
-            <!-- Gráfico 3: Volumes de Requests por Semana -->
+            <!-- Chart 3: Weekly Request Volumes -->
             <div class="card mb-6">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-                    <h3 class="font-bold text-gray-800">📅 Volumes de Requests por Semana</h3>
+                    <h3 class="font-bold text-gray-800">📅 Weekly Request Volumes</h3>
                     <div class="w-full md:w-64 mt-2 md:mt-0">
                         <select id="timeVolMesSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800">
-                            <option value="">Todos os Meses</option>
+                            <option value="">All Months</option>
                         </select>
                     </div>
                 </div>
                 <div class="chart-container"><canvas id="timeVolumeChart"></canvas></div>
             </div>
 
-            <!-- Gráfico de Cliques -->
+            <!-- Total Clicks Chart -->
             <div class="card mb-6">
-                <h3 class="font-bold mb-4">🖱️ Total de Cliques por Locadora</h3>
+                <h3 class="font-bold mb-4">🖱️ Total Clicks by Company</h3>
                 <div class="chart-container"><canvas id="clicksLocadoraChart"></canvas></div>
             </div>
 
-            <!-- NOVOS GRÁFICOS: Eficiência e Fidelização -->
+            <!-- Efficiency & Loyalty Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">🎯 Eficiência (CTR %) por Canal</h3>
+                    <h3 class="font-bold mb-4">🎯 Efficiency (CTR %) by Channel</h3>
                     <div class="chart-container"><canvas id="ctrCanalChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <h3 class="font-bold mb-4">💎 Distribuição por Loyalty (Requests)</h3>
+                    <h3 class="font-bold mb-4">💎 Loyalty Distribution (Requests)</h3>
                     <div class="chart-container"><canvas id="loyaltyChart"></canvas></div>
                 </div>
             </div>
 
-            <!-- Gráficos 1 e 2 -->
+            <!-- Charts 1 and 2 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">📈 Tendência de Requests por Locadora (Por Mês)</h3>
+                    <h3 class="font-bold mb-4">📈 Request Trend by Company (Per Month)</h3>
                     <div class="chart-container"><canvas id="trendLocadoraChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <h3 class="font-bold mb-4">📊 Volumes por Locadora e Canal</h3>
+                    <h3 class="font-bold mb-4">📊 Volumes by Company and Channel</h3>
                     <div class="chart-container"><canvas id="locadoraCanalChart"></canvas></div>
                 </div>
             </div>
 
-            <!-- Gráficos de Base -->
+            <!-- Base Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <h3 class="font-bold mb-4">🚗 Frequência de Ownership por Semana (Exceto Caixa)</h3>
+                    <h3 class="font-bold mb-4">🚗 Ownership Frequency per Week (Excluding Caixa)</h3>
                     <div class="chart-container"><canvas id="ownershipTimeChart"></canvas></div>
                 </div>
                 
                 <div class="card">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-800">🏦 Volume de Lotes/Waves (Apenas Caixa)</h3>
+                        <h3 class="font-bold text-gray-800">🏦 Lots/Waves Volume (Caixa Only)</h3>
                         <div class="w-full md:w-48 mt-2 md:mt-0">
                             <select id="caixaMesSelect" class="border-gray-400 shadow-sm font-semibold text-blue-800 text-sm">
-                                <option value="">Todos os Meses</option>
+                                <option value="">All Months</option>
                             </select>
                         </div>
                     </div>
@@ -187,38 +186,37 @@
                 </div>
             </div>
 
-            <!-- Tabelas (Agora em Matriz 2x2 para melhor leitura) -->
+            <!-- Tables -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4 text-blue-800">🔑 Ownership (Locadoras Gerais)</h3>
+                    <h3 class="font-bold mb-4 text-blue-800">🔑 Ownership (General Companies)</h3>
                     <table class="w-full text-xs">
-                        <thead><tr><th>Ownership</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
+                        <thead><tr><th>Ownership</th><th>Freq.</th><th>Requests</th><th>Clicks</th></tr></thead>
                         <tbody id="ownershipTableBody"></tbody>
                     </table>
                 </div>
 
                 <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4 text-blue-600">🏦 Bases Caixa (Waves/Lotes)</h3>
+                    <h3 class="font-bold mb-4 text-blue-600">🏦 Caixa Bases (Waves/Lots)</h3>
                     <table class="w-full text-xs">
-                        <thead><tr><th>Wave / Lote</th><th>Freq</th><th>Requests</th><th>Clicks</th></tr></thead>
+                        <thead><tr><th>Wave / Lot</th><th>Freq.</th><th>Requests</th><th>Clicks</th></tr></thead>
                         <tbody id="wavesTableBody"></tbody>
                     </table>
                 </div>
 
                 <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4">🏆 Top Bases Abordadas (Volume)</h3>
+                    <h3 class="font-bold mb-4">🏆 Top Targeted Bases (Volume)</h3>
                     <table class="w-full text-xs">
-                        <thead><tr><th>Descrição da Base</th><th>Freq</th><th>Requests Total</th></tr></thead>
+                        <thead><tr><th>Base Description</th><th>Freq.</th><th>Total Requests</th></tr></thead>
                         <tbody id="rankingTableBody"></tbody>
                     </table>
                 </div>
 
-                <!-- NOVA TABELA DE CTR -->
                 <div class="card overflow-x-auto">
-                    <h3 class="font-bold mb-4 text-green-700">⭐ Top Bases por Conversão (Melhor CTR)</h3>
-                    <p class="text-xs text-gray-500 mb-2">*Apenas bases com mais de 100 requests enviados</p>
+                    <h3 class="font-bold mb-4 text-green-700">⭐ Top Bases by Conversion (Best CTR)</h3>
+                    <p class="text-xs text-gray-500 mb-2">*Only bases with over 100 requests sent</p>
                     <table class="w-full text-xs">
-                        <thead><tr><th>Descrição da Base</th><th>Requests</th><th>Shows</th><th>CTR (%)</th></tr></thead>
+                        <thead><tr><th>Base Description</th><th>Requests</th><th>Shows</th><th>CTR (%)</th></tr></thead>
                         <tbody id="rankingCtrTableBody"></tbody>
                     </table>
                 </div>
